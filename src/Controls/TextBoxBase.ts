@@ -13,6 +13,7 @@ module Fayde.Controls {
         static SelectionStartProperty = DependencyProperty.RegisterFull("SelectionStart", () => Number, TextBoxBase, 0, undefined, undefined, true, positiveIntValidator);
         static BaselineOffsetProperty = DependencyProperty.Register("BaselineOffset", () => Number, TextBoxBase);
         static MaxLengthProperty = DependencyProperty.RegisterFull("MaxLength", () => Number, TextBoxBase, 0, undefined, undefined, undefined, positiveIntValidator);
+        static WatermarkProperty = DependencyProperty.Register("Watermark", () => String, TextBoxBase, "");
 
         CaretBrush: Media.Brush;
         SelectionForeground: Media.Brush;
@@ -22,6 +23,7 @@ module Fayde.Controls {
         BaselineOffset: number;
         MaxLength: number;
         SelectionOnFocus: SelectionOnFocus;
+        Watermark: String;
 
         private _Selecting: boolean = false;
         private _Captured: boolean = false;
@@ -34,6 +36,7 @@ module Fayde.Controls {
         $Advancer: Internal.ICursorAdvancer;
         $View: Internal.TextBoxView;
         $Clipboard = Clipboard.Create();
+        $WatermarkElement: FrameworkElement;
 
         constructor(eventsMask: Text.EmitChangedType) {
             super();
@@ -103,6 +106,7 @@ module Fayde.Controls {
         OnApplyTemplate() {
             super.OnApplyTemplate();
             this.$ContentProxy.setElement(<FrameworkElement>this.GetTemplateChild("ContentElement", FrameworkElement), this.$View);
+            this.$WatermarkElement = <FrameworkElement>this.GetTemplateChild("WatermarkElement", FrameworkElement);
         }
 
         OnLostFocus(e: RoutedEventArgs) {
@@ -114,6 +118,7 @@ module Fayde.Controls {
             super.OnGotFocus(e);
             this.$View.setIsFocused(true);
             this.selectBasedonSelectionMode();
+            this._CheckWatermarkVisibility();
         }
 
         OnMouseLeftButtonDown(e: Input.MouseButtonEventArgs) {
@@ -295,7 +300,8 @@ module Fayde.Controls {
                 args.Handled = handled;
             }
             proxy.end();
-
+            
+            this._CheckWatermarkVisibility();
             if (!args.Handled && !isReadOnly)
                 this.PostOnKeyDown(args);
         }
@@ -318,7 +324,13 @@ module Fayde.Controls {
                 proxy.enterText(args.Char);
                 args.Handled = true;
             }
+            this._CheckWatermarkVisibility();
             proxy.end();
+        }
+        
+        private _CheckWatermarkVisibility() {
+            if (this.Watermark.length > 0)
+                this.$WatermarkElement.Visibility = this.$Proxy.text.length > 0 ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private _KeyDownBackSpace(modifiers: Input.IModifiersOn): boolean {
