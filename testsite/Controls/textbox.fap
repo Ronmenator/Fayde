@@ -8,6 +8,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition />
         </Grid.RowDefinitions>
         <TextBox Grid.Row="0" Margin="5" Text="Enter Text here!" Background="Yellow" />
@@ -26,6 +27,11 @@
             <TextBox x:Name="SelectionText5" Margin="0,5" Text="DefaultSelectAll" SelectionOnFocus="DefaultSelectAll" />
         </StackPanel>
         
-        <TextBox x:Name="BigTextBox" Grid.Row="4" Margin="5" Text="Enter Text here!" AcceptsReturn="True" TextWrapping="Wrap" />
+        <StackPanel Grid.Row="4">
+            <TextBox x:Name="TextBoxWatermark" Watermark="This is a watermark" Margin="5" />
+            <TextBox x:Name="BigTextBoxWatermark" Margin="5" Watermark="This is a watermark in a big textbox" AcceptsReturn="True" TextWrapping="Wrap" Height="60" VerticalContentAlignment="Top" />
+        </StackPanel>
+
+        <TextBox x:Name="BigTextBox" Grid.Row="5" Margin="5" Text="Enter Text here!" AcceptsReturn="True" TextWrapping="Wrap" VerticalContentAlignment="Top" />
     </Grid>
 </Application>
