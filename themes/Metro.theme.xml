@@ -275,81 +275,6 @@
     <x:Double x:Key="ControlContentFontSize">10</x:Double>
     <!-- FONTS -->
 
-<<<<<<< HEAD
-    <DataTemplate x:Key="DefaultHeaderContentTemplate">
-        <TextBlock Text="{Binding }" VerticalAlignment="Center" FontSize="{StaticResource ControlTitleFontSize}" FontFamily="{StaticResource ContentFontFamily}" Margin="5,0" />
-    </DataTemplate>
-
-    <Style x:Key="DefaultExpanderStyle" TargetType="Expander">
-        <Setter Property="Background" Value="{StaticResource Gray5}"/>
-        <Setter Property="HeaderContentTemplate" Value="{StaticResource DefaultHeaderContentTemplate}"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Expander">
-                    <Border BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            Background="{TemplateBinding Background}">
-                        <VisualStateManager.VisualStateGroups>
-                            <VisualStateGroup x:Name="ViewStates">
-                                <VisualState x:Name="Expanded">
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="ContentScaleTransform" Storyboard.TargetProperty="ScaleY" To="1" Duration="00:00:00.150"/>
-                                        <DoubleAnimation Storyboard.TargetName="RotateButtonTransform" Storyboard.TargetProperty="Angle" To="180" Duration="00:00:00.150"/>
-                                    </Storyboard>
-                                </VisualState>
-                                <VisualState x:Name="Collapsed">
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="ContentScaleTransform" Storyboard.TargetProperty="ScaleY" To="0" Duration="00:00:00.150"/>
-                                        <DoubleAnimation Storyboard.TargetName="RotateButtonTransform" Storyboard.TargetProperty="Angle" To="0" Duration="00:00:00.150"/>
-                                    </Storyboard>
-                                </VisualState>
-                            </VisualStateGroup>
-                        </VisualStateManager.VisualStateGroups>
-                        
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-                            
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <ContentPresenter Content="{TemplateBinding HeaderContent}" ContentTemplate="{TemplateBinding HeaderContentTemplate}" />
-                                <ToggleButton Grid.Column="1" RenderTransformOrigin="0.5,0.5" x:Name="ExpandCollapseButton">
-                                    <ToggleButton.Template>
-                                        <ControlTemplate TargetType="ToggleButton">
-                                            <Grid>
-                                                <Ellipse Width="30" Height="30" Fill="#FF14BBD2"/>
-                                                <Path RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                    Data="M2,3L9,10 16,3" Stroke="#FFFFFFFF" StrokeThickness="4"/>
-                                            </Grid>
-                                        </ControlTemplate>
-                                    </ToggleButton.Template>
-                                    <ToggleButton.RenderTransform>
-                                        <RotateTransform x:Name="RotateButtonTransform"/>
-                                    </ToggleButton.RenderTransform>
-                                </ToggleButton>
-                            </Grid>
-                            
-                            <Grid Grid.Row="1" x:Name="Content">
-                                <ContentPresenter Content="{TemplateBinding Content}">
-                                    <ContentPresenter.RenderTransform>
-                                        <ScaleTransform x:Name="ContentScaleTransform"/>
-                                    </ContentPresenter.RenderTransform>
-                                </ContentPresenter>
-                            </Grid>
-                        </Grid>
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-=======
->>>>>>> 173c816736f41f8c574b1530c2a0cc7ff84d4dfd
     <!--SearchButtonStyle-->
     <Style x:Key="SearchButtonStyle" TargetType="HyperlinkButton">
         <Setter Property="Margin" Value="-22,0,20,0"/>
@@ -3206,11 +3131,5 @@
     <Style TargetType="ToolTip" BasedOn="{StaticResource DefaultToolTipStyle}"/>
     <Style TargetType="HeaderedContentControl" BasedOn="{StaticResource DefaultHeaderedContentControlStyle}"/>
     <Style TargetType="Dialog" BasedOn="{StaticResource DefaultDialogStyle}"/>
-<<<<<<< HEAD
-    <Style TargetType="Video" BasedOn="{StaticResource DefaultVideoStyle}" />
-    <Style TargetType="Expander" BasedOn="{StaticResource DefaultExpanderStyle}"/>
-    
+    <Style TargetType="Video" BasedOn="{StaticResource DefaultVideoStyle}" />  
 </ResourceDictionary>
-=======
-</ResourceDictionary>
->>>>>>> 173c816736f41f8c574b1530c2a0cc7ff84d4dfd
