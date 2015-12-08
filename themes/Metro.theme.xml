@@ -275,6 +275,7 @@
     <x:Double x:Key="ControlContentFontSize">10</x:Double>
     <!-- FONTS -->
 
+<<<<<<< HEAD
     <DataTemplate x:Key="DefaultHeaderContentTemplate">
         <TextBlock Text="{Binding }" VerticalAlignment="Center" FontSize="{StaticResource ControlTitleFontSize}" FontFamily="{StaticResource ContentFontFamily}" Margin="5,0" />
     </DataTemplate>
@@ -347,6 +348,8 @@
         </Setter>
     </Style>
 
+=======
+>>>>>>> 173c816736f41f8c574b1530c2a0cc7ff84d4dfd
     <!--SearchButtonStyle-->
     <Style x:Key="SearchButtonStyle" TargetType="HyperlinkButton">
         <Setter Property="Margin" Value="-22,0,20,0"/>
@@ -963,6 +966,9 @@
                                 <ScrollViewer x:Name="ContentElement" BorderThickness="0" IsTabStop="False"
                                               Margin="4,0,2,2" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Background="{x:Null}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                <TextBlock Text="{TemplateBinding Watermark}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
+                                           HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Foreground="{TemplateBinding Foreground}" FontStyle="Italic" 
+                                           x:Name="WatermarkElement" Margin="4,0,2,2"/>
                             </Grid>
                         </Grid>
                         <Rectangle x:Name="DisabledVisualElement" Stroke="{StaticResource ControlsDisabledBrush}"
@@ -3200,7 +3206,11 @@
     <Style TargetType="ToolTip" BasedOn="{StaticResource DefaultToolTipStyle}"/>
     <Style TargetType="HeaderedContentControl" BasedOn="{StaticResource DefaultHeaderedContentControlStyle}"/>
     <Style TargetType="Dialog" BasedOn="{StaticResource DefaultDialogStyle}"/>
+<<<<<<< HEAD
     <Style TargetType="Video" BasedOn="{StaticResource DefaultVideoStyle}" />
     <Style TargetType="Expander" BasedOn="{StaticResource DefaultExpanderStyle}"/>
     
 </ResourceDictionary>
+=======
+</ResourceDictionary>
+>>>>>>> 173c816736f41f8c574b1530c2a0cc7ff84d4dfd
