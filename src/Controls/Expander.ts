@@ -1,6 +1,7 @@
 /// <reference path="ContentControl" />
 /// <reference path="Primitives/ToggleButton" />
 /// <reference path="../Core/DataTemplate" />
+/// <reference path="Grid" />
 
 module Fayde.Controls {
     export class Expander extends ContentControl {
@@ -8,13 +9,11 @@ module Fayde.Controls {
         
         HeaderContent: any;
         IsExpanded: boolean;
-        CornerRadius: CornerRadius;
         HeaderContentTemplate: DataTemplate;
         
         static HeaderContentProperty = DependencyProperty.Register("HeaderContent", () => Object, Expander);
         static HeaderContentTemplateProperty = DependencyProperty.Register("HeaderContentTemplate", () => DataTemplate, Expander);
         static IsExpandedProperty = DependencyProperty.Register("IsExpanded", () => Boolean, Expander, true);
-        static CornerRadiusProperty = DependencyProperty.Register("CornerRadius", () => CornerRadius, Expander);
         
         constructor() {
             super();
@@ -29,7 +28,6 @@ module Fayde.Controls {
         
         OnApplyTemplate() {
             super.OnApplyTemplate();
-            this.UpdateVisualState(false);
 
             this.$toggleExpander = this._GetChildOfType("ExpandCollapseButton", Primitives.ToggleButton);
 

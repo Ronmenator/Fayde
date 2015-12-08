@@ -5,16 +5,16 @@
     
     <Grid>
         <StackPanel>
-            <Expander HeaderContent="This is a header" 
-                    Width="400" 
-                    Height="400">            
+            <Expander HeaderContent="This is a header"
+                      Width="400" 
+                      Height="400">            
                 <Grid Background="Green" />
             </Expander>
             
             <Expander HeaderContent="This is a header" 
-                    Width="400" 
-                    Height="400"
-                    IsExpanded="False">            
+                      Width="400" 
+                      Height="400"
+                      IsExpanded="False">            
                 <Grid Background="Blue" />
             </Expander>
         </StackPanel>
