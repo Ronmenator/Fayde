@@ -329,7 +329,7 @@ module Fayde.Controls {
         }
         
         private _CheckWatermarkVisibility() {
-            if (this.Watermark.length > 0)
+            if (this.Watermark.length > 0 && this.$WatermarkElement)
                 this.$WatermarkElement.Visibility = this.$Proxy.text.length > 0 ? Visibility.Collapsed : Visibility.Visible;
         }
 
