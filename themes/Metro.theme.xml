@@ -724,7 +724,7 @@
                                               Margin="4,0,2,2" 
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
                                               Background="{x:Null}"
-                                              HorizontalAlignment="{TemplateBinding HoriontalContentAlignment}" 
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
                                               VerticalScrollBarVisibility="Auto"
                                               HorizontalScrollBarVisibility="Disabled"/>
                                               
