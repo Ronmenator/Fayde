@@ -2015,6 +2015,7 @@
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="MinHeight" Value="26"/>
         <Setter Property="Background" Value="{StaticResource ControlBackgroundBrush}"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
         <Setter Property="Foreground">
             <Setter.Value>
                 <SolidColorBrush Color="{StaticResource TextBoxText}"/>
