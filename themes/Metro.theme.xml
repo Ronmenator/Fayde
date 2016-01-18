@@ -721,10 +721,16 @@
                                     Opacity="0"/>
                             <Grid HorizontalAlignment="{TemplateBinding TextAlignment}">
                                 <ScrollViewer x:Name="ContentElement" BorderThickness="0" IsTabStop="False"
-                                              Margin="4,0,2,2" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Background="{x:Null}"
-                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                              Margin="4,0,2,2" 
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
+                                              Background="{x:Null}"
+                                              HorizontalAlignment="{TemplateBinding HoriontalContentAlignment}" 
                                               VerticalScrollBarVisibility="Auto"
                                               HorizontalScrollBarVisibility="Disabled"/>
+                                              
+                                <TextBlock Text="{TemplateBinding Watermark}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
+                                           HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Foreground="{TemplateBinding Foreground}" FontStyle="Italic" 
+                                           x:Name="WatermarkElement" Margin="4,0,2,2"/>
                             </Grid>
                         </Grid>
                         <Rectangle x:Name="DisabledVisualElement" Stroke="{StaticResource ControlsDisabledBrush}"
