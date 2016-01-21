@@ -2101,7 +2101,7 @@
                             <Border x:Name="ContentElement" Margin="{TemplateBinding Padding}" Padding="4,0,3,2"
                                     VerticalAlignment="Center"/>
                         </Border>
-                        <TextBlock x:Name="WatermarkElement" Text="{TemplateBinding Watermark}" VerticalAlignment="Center" Margin="10,0" />
+                        <TextBlock x:Name="WatermarkElement" Text="{TemplateBinding Watermark}" VerticalAlignment="Center" Margin="5,0" FontStyle="Italic" />
                         <Border x:Name="DisabledVisualElement" BorderBrush="{StaticResource ControlsDisabledBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 Background="{StaticResource ControlsDisabledBrush}" IsHitTestVisible="False"
@@ -2114,10 +2114,6 @@
                             <Rectangle x:Name="FocusInnerRectangle" StrokeThickness="{TemplateBinding BorderThickness}"
                                        Opacity="0" Stroke="{StaticResource TextBoxMouseOverInnerBorderBrush}"/>
                         </Border>
-
-                        <TextBlock Text="{TemplateBinding Watermark}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
-                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Foreground="{TemplateBinding Foreground}" FontStyle="Italic" 
-                                    x:Name="WatermarkElement" Margin="4,0,2,2"/>
 
                         <Border x:Name="ValidationErrorElement" BorderBrush="{StaticResource ControlsValidationBrush}"
                                 BorderThickness="1" CornerRadius="1" Visibility="Collapsed">

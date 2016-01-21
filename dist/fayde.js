@@ -6291,7 +6291,7 @@ var Fayde;
         })(Controls.Primitives.Selector);
         Controls.ComboBox = ComboBox;
         Fayde.CoreLibrary.add(ComboBox);
-        Controls.TemplateParts(ComboBox, { Name: "ContentPresenter", Type: Controls.ContentPresenter }, { Name: "Popup", Type: Controls.Primitives.Popup }, { Name: "ContentPresenterBorder", Type: Fayde.FrameworkElement }, { Name: "DropDownToggle", Type: Controls.Primitives.ToggleButton }, { Name: "ScrollViewer", Type: Controls.ScrollViewer });
+        Controls.TemplateParts(ComboBox, { Name: "ContentPresenter", Type: Controls.ContentPresenter }, { Name: "Popup", Type: Controls.Primitives.Popup }, { Name: "ContentPresenterBorder", Type: Fayde.FrameworkElement }, { Name: "DropDownToggle", Type: Controls.Primitives.ToggleButton }, { Name: "ScrollViewer", Type: Controls.ScrollViewer }, { Name: "WatermarkElement", Type: Fayde.FrameworkElement });
         Controls.TemplateVisualStates(ComboBox, { GroupName: "CommonStates", Name: "Normal" }, { GroupName: "CommonStates", Name: "MouseOver" }, { GroupName: "CommonStates", Name: "Disabled" }, { GroupName: "FocusStates", Name: "Unfocused" }, { GroupName: "FocusStates", Name: "Focused" }, { GroupName: "FocusStates", Name: "FocusedDropDown" }, { GroupName: "ValidationStates", Name: "Valid" }, { GroupName: "ValidationStates", Name: "InvalidUnfocused" }, { GroupName: "ValidationStates", Name: "InvalidFocused" });
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
 })(Fayde || (Fayde = {}));
@@ -16630,6 +16630,13 @@ var Fayde;
             GradientBrush.prototype.CreatePad = function (ctx, bounds) { };
             GradientBrush.prototype.CreateRepeat = function (ctx, bounds) { };
             GradientBrush.prototype.CreateReflect = function (ctx, bounds) { };
+            GradientBrush.prototype.AddColorStop = function (grd, offset, color) {
+                if (offset < 0.0)
+                    offset = 0.0;
+                if (offset > 1.0)
+                    offset = 1.0;
+                grd.addColorStop(offset, color);
+            };
             GradientBrush.GradientStopsProperty = DependencyProperty.RegisterImmutable("GradientStops", function () { return Media.GradientStopCollection; }, GradientBrush);
             GradientBrush.MappingModeProperty = DependencyProperty.Register("MappingMode", function () { return new Fayde.Enum(Media.BrushMappingMode); }, GradientBrush, Media.BrushMappingMode.RelativeToBoundingBox, function (d, args) { return d.InvalidateBrush(); });
             GradientBrush.SpreadMethodProperty = DependencyProperty.Register("SpreadMethod", function () { return new Fayde.Enum(Media.GradientSpreadMethod); }, GradientBrush, Media.GradientSpreadMethod.Pad, function (d, args) { return d.InvalidateBrush(); });
@@ -16722,7 +16729,7 @@ var Fayde;
                 var grd = ctx.createLinearGradient(data.start.x, data.start.y, data.end.x, data.end.y);
                 for (var en = this.GradientStops.getEnumerator(); en.moveNext();) {
                     var stop = en.current;
-                    grd.addColorStop(stop.Offset, stop.Color.toString());
+                    this.AddColorStop(grd, stop.Offset, stop.Color.toString());
                 }
                 return grd;
             };
@@ -16742,7 +16749,7 @@ var Fayde;
                         var stop = en.current;
                         var offset = interpolator.interpolate(stop.Offset);
                         if (offset >= 0 && offset <= 1)
-                            grd.addColorStop(offset, stop.Color.toString());
+                            this.AddColorStop(grd, offset, stop.Color.toString());
                     }
                 }
                 return grd;
@@ -18014,7 +18021,7 @@ var Fayde;
                 var grd = (!data.balanced ? tmpCtx : ctx).createRadialGradient(data.x0, data.y0, 0, data.x1, data.y1, data.r1);
                 for (var en = this.GradientStops.getEnumerator(); en.moveNext();) {
                     var stop = en.current;
-                    grd.addColorStop(stop.Offset, stop.Color.toString());
+                    this.AddColorStop(grd, stop.Offset, stop.Color.toString());
                 }
                 return this.FitPattern(ctx, grd, data, bounds);
             };
@@ -18041,7 +18048,7 @@ var Fayde;
                         var offset = en.current.Offset;
                         if (reflect && inverted)
                             offset = 1 - offset;
-                        grd.addColorStop(offset, en.current.Color.toString());
+                        this.AddColorStop(grd, offset, en.current.Color.toString());
                     }
                     tmpCtx.fillStyle = grd;
                     tmpCtx.beginPath();
@@ -19522,6 +19529,8 @@ Fayde.CoreLibrary.addPrimitive(Color);
 nullstone.registerTypeConverter(Color, function (val) {
     if (!val || val instanceof Color)
         return val;
+    if (val instanceof Fayde.Media.SolidColorBrush)
+        return val.Color;
     val = val.toString();
     if (val[0] !== "#") {
         var color = Color.KnownColors[val];
@@ -24064,6 +24073,124 @@ var Fayde;
         })(Internal = Markup.Internal || (Markup.Internal = {}));
     })(Markup = Fayde.Markup || (Fayde.Markup = {}));
 })(Fayde || (Fayde = {}));
+/// <reference path="../../Core/DependencyObject.ts" />
+/// <reference path="../GeneralTransform.ts" />
+var Fayde;
+(function (Fayde) {
+    var Media;
+    (function (Media) {
+        var Effects;
+        (function (Effects) {
+            var Effect = (function (_super) {
+                __extends(Effect, _super);
+                function Effect() {
+                    _super.apply(this, arguments);
+                }
+                Effect.prototype.PreRender = function (ctx) {
+                };
+                Effect.prototype.PostRender = function (ctx) {
+                };
+                Effect.prototype.GetPadding = function (thickness) {
+                    return false;
+                };
+                Effect.EffectMappingProperty = DependencyProperty.Register("EffectMapping", function () { return Media.GeneralTransform; }, Effect);
+                return Effect;
+            })(Fayde.DependencyObject);
+            Effects.Effect = Effect;
+            Fayde.CoreLibrary.add(Effect);
+            var reactions;
+            (function (reactions) {
+                Fayde.DPReaction(Effect.EffectMappingProperty, function (dobj, ov, nv) { return Fayde.Incite(dobj); });
+            })(reactions || (reactions = {}));
+        })(Effects = Media.Effects || (Media.Effects = {}));
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+})(Fayde || (Fayde = {}));
+/// <reference path="Effect.ts" />
+var Fayde;
+(function (Fayde) {
+    var Media;
+    (function (Media) {
+        var Effects;
+        (function (Effects) {
+            var BlurEffect = (function (_super) {
+                __extends(BlurEffect, _super);
+                function BlurEffect() {
+                    _super.apply(this, arguments);
+                }
+                BlurEffect.RadiusProperty = DependencyProperty.Register("Radius", function () { return Number; }, BlurEffect, undefined, Fayde.Incite);
+                return BlurEffect;
+            })(Effects.Effect);
+            Effects.BlurEffect = BlurEffect;
+            Fayde.CoreLibrary.add(BlurEffect);
+        })(Effects = Media.Effects || (Media.Effects = {}));
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+})(Fayde || (Fayde = {}));
+/// <reference path="Effect.ts" />
+/// <reference path="../../Primitives/Color.ts" />
+var Fayde;
+(function (Fayde) {
+    var Media;
+    (function (Media) {
+        var Effects;
+        (function (Effects) {
+            var DropShadowEffect = (function (_super) {
+                __extends(DropShadowEffect, _super);
+                function DropShadowEffect() {
+                    _super.apply(this, arguments);
+                }
+                DropShadowEffect.prototype.GetPadding = function (thickness) {
+                    var radius = Math.min(this.BlurRadius, DropShadowEffect.MAX_BLUR_RADIUS);
+                    var depth = Math.min(Math.max(0, this.ShadowDepth), DropShadowEffect.MAX_SHADOW_DEPTH);
+                    var direction = this.Direction * Math.PI / 180.0;
+                    var width = Math.ceil(radius);
+                    var offsetX = Math.cos(direction) * depth;
+                    var offsetY = Math.sin(direction) * depth;
+                    var left = -offsetX + width;
+                    var top = offsetY + width;
+                    var right = offsetX + width;
+                    var bottom = -offsetY + width;
+                    var l = left < 1.0 ? 1.0 : Math.ceil(left);
+                    var t = top < 1.0 ? 1.0 : Math.ceil(top);
+                    var r = right < 1.0 ? 1.0 : Math.ceil(right);
+                    var b = bottom < 1.0 ? 1.0 : Math.ceil(bottom);
+                    var changed = thickness.left !== l
+                        || thickness.top !== t
+                        || thickness.right !== r
+                        || thickness.bottom !== b;
+                    thickness.left = l;
+                    thickness.top = t;
+                    thickness.right = r;
+                    thickness.bottom = b;
+                    return changed;
+                };
+                DropShadowEffect.prototype.PreRender = function (ctx) {
+                    var color = this.Color;
+                    var opacity = color.A * this.Opacity;
+                    var radius = Math.min(this.BlurRadius, DropShadowEffect.MAX_BLUR_RADIUS);
+                    var depth = Math.min(Math.max(0, this.ShadowDepth), DropShadowEffect.MAX_SHADOW_DEPTH);
+                    var direction = this.Direction * Math.PI / 180.0;
+                    var offsetX = Math.cos(direction) * depth;
+                    var offsetY = -Math.sin(direction) * depth;
+                    var raw = ctx.raw;
+                    raw.shadowColor = "rgba(" + color.R + "," + color.G + "," + color.B + "," + opacity + ")";
+                    raw.shadowBlur = radius;
+                    raw.shadowOffsetX = offsetX;
+                    raw.shadowOffsetY = offsetY;
+                };
+                DropShadowEffect.MAX_BLUR_RADIUS = 20;
+                DropShadowEffect.MAX_SHADOW_DEPTH = 300;
+                DropShadowEffect.BlurRadiusProperty = DependencyProperty.Register("BlurRadius", function () { return Number; }, DropShadowEffect, 5.0, Fayde.Incite);
+                DropShadowEffect.ColorProperty = DependencyProperty.Register("Color", function () { return Color; }, DropShadowEffect, Color.KnownColors.Black, Fayde.Incite);
+                DropShadowEffect.DirectionProperty = DependencyProperty.Register("Direction", function () { return Number; }, DropShadowEffect, 315.0, Fayde.Incite);
+                DropShadowEffect.OpacityProperty = DependencyProperty.Register("Opacity", function () { return Number; }, DropShadowEffect, 1.0, Fayde.Incite);
+                DropShadowEffect.ShadowDepthProperty = DependencyProperty.Register("ShadowDepth", function () { return Number; }, DropShadowEffect, 5.0, Fayde.Incite);
+                return DropShadowEffect;
+            })(Effects.Effect);
+            Effects.DropShadowEffect = DropShadowEffect;
+            Fayde.CoreLibrary.add(DropShadowEffect);
+        })(Effects = Media.Effects || (Media.Effects = {}));
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+})(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
     var Media;
@@ -25989,124 +26116,6 @@ var Fayde;
                 return msg;
             }
         })(Animation = Media.Animation || (Media.Animation = {}));
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="../../Core/DependencyObject.ts" />
-/// <reference path="../GeneralTransform.ts" />
-var Fayde;
-(function (Fayde) {
-    var Media;
-    (function (Media) {
-        var Effects;
-        (function (Effects) {
-            var Effect = (function (_super) {
-                __extends(Effect, _super);
-                function Effect() {
-                    _super.apply(this, arguments);
-                }
-                Effect.prototype.PreRender = function (ctx) {
-                };
-                Effect.prototype.PostRender = function (ctx) {
-                };
-                Effect.prototype.GetPadding = function (thickness) {
-                    return false;
-                };
-                Effect.EffectMappingProperty = DependencyProperty.Register("EffectMapping", function () { return Media.GeneralTransform; }, Effect);
-                return Effect;
-            })(Fayde.DependencyObject);
-            Effects.Effect = Effect;
-            Fayde.CoreLibrary.add(Effect);
-            var reactions;
-            (function (reactions) {
-                Fayde.DPReaction(Effect.EffectMappingProperty, function (dobj, ov, nv) { return Fayde.Incite(dobj); });
-            })(reactions || (reactions = {}));
-        })(Effects = Media.Effects || (Media.Effects = {}));
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="Effect.ts" />
-var Fayde;
-(function (Fayde) {
-    var Media;
-    (function (Media) {
-        var Effects;
-        (function (Effects) {
-            var BlurEffect = (function (_super) {
-                __extends(BlurEffect, _super);
-                function BlurEffect() {
-                    _super.apply(this, arguments);
-                }
-                BlurEffect.RadiusProperty = DependencyProperty.Register("Radius", function () { return Number; }, BlurEffect, undefined, Fayde.Incite);
-                return BlurEffect;
-            })(Effects.Effect);
-            Effects.BlurEffect = BlurEffect;
-            Fayde.CoreLibrary.add(BlurEffect);
-        })(Effects = Media.Effects || (Media.Effects = {}));
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="Effect.ts" />
-/// <reference path="../../Primitives/Color.ts" />
-var Fayde;
-(function (Fayde) {
-    var Media;
-    (function (Media) {
-        var Effects;
-        (function (Effects) {
-            var DropShadowEffect = (function (_super) {
-                __extends(DropShadowEffect, _super);
-                function DropShadowEffect() {
-                    _super.apply(this, arguments);
-                }
-                DropShadowEffect.prototype.GetPadding = function (thickness) {
-                    var radius = Math.min(this.BlurRadius, DropShadowEffect.MAX_BLUR_RADIUS);
-                    var depth = Math.min(Math.max(0, this.ShadowDepth), DropShadowEffect.MAX_SHADOW_DEPTH);
-                    var direction = this.Direction * Math.PI / 180.0;
-                    var width = Math.ceil(radius);
-                    var offsetX = Math.cos(direction) * depth;
-                    var offsetY = Math.sin(direction) * depth;
-                    var left = -offsetX + width;
-                    var top = offsetY + width;
-                    var right = offsetX + width;
-                    var bottom = -offsetY + width;
-                    var l = left < 1.0 ? 1.0 : Math.ceil(left);
-                    var t = top < 1.0 ? 1.0 : Math.ceil(top);
-                    var r = right < 1.0 ? 1.0 : Math.ceil(right);
-                    var b = bottom < 1.0 ? 1.0 : Math.ceil(bottom);
-                    var changed = thickness.left !== l
-                        || thickness.top !== t
-                        || thickness.right !== r
-                        || thickness.bottom !== b;
-                    thickness.left = l;
-                    thickness.top = t;
-                    thickness.right = r;
-                    thickness.bottom = b;
-                    return changed;
-                };
-                DropShadowEffect.prototype.PreRender = function (ctx) {
-                    var color = this.Color;
-                    var opacity = color.A * this.Opacity;
-                    var radius = Math.min(this.BlurRadius, DropShadowEffect.MAX_BLUR_RADIUS);
-                    var depth = Math.min(Math.max(0, this.ShadowDepth), DropShadowEffect.MAX_SHADOW_DEPTH);
-                    var direction = this.Direction * Math.PI / 180.0;
-                    var offsetX = Math.cos(direction) * depth;
-                    var offsetY = -Math.sin(direction) * depth;
-                    var raw = ctx.raw;
-                    raw.shadowColor = "rgba(" + color.R + "," + color.G + "," + color.B + "," + opacity + ")";
-                    raw.shadowBlur = radius;
-                    raw.shadowOffsetX = offsetX;
-                    raw.shadowOffsetY = offsetY;
-                };
-                DropShadowEffect.MAX_BLUR_RADIUS = 20;
-                DropShadowEffect.MAX_SHADOW_DEPTH = 300;
-                DropShadowEffect.BlurRadiusProperty = DependencyProperty.Register("BlurRadius", function () { return Number; }, DropShadowEffect, 5.0, Fayde.Incite);
-                DropShadowEffect.ColorProperty = DependencyProperty.Register("Color", function () { return Color; }, DropShadowEffect, Color.KnownColors.Black, Fayde.Incite);
-                DropShadowEffect.DirectionProperty = DependencyProperty.Register("Direction", function () { return Number; }, DropShadowEffect, 315.0, Fayde.Incite);
-                DropShadowEffect.OpacityProperty = DependencyProperty.Register("Opacity", function () { return Number; }, DropShadowEffect, 1.0, Fayde.Incite);
-                DropShadowEffect.ShadowDepthProperty = DependencyProperty.Register("ShadowDepth", function () { return Number; }, DropShadowEffect, 5.0, Fayde.Incite);
-                return DropShadowEffect;
-            })(Effects.Effect);
-            Effects.DropShadowEffect = DropShadowEffect;
-            Fayde.CoreLibrary.add(DropShadowEffect);
-        })(Effects = Media.Effects || (Media.Effects = {}));
     })(Media = Fayde.Media || (Fayde.Media = {}));
 })(Fayde || (Fayde = {}));
 /// <reference path="../../Core/DependencyObject.ts"/>
