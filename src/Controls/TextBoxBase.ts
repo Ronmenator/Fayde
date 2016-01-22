@@ -45,6 +45,7 @@ module Fayde.Controls {
             view.MouseLeftButtonUp.on((s, e) => this.OnMouseLeftButtonUp(e), this);
             this.$Proxy = new Text.Proxy(eventsMask, MAX_UNDO_COUNT);
             this._SyncFont();
+            this._CheckWatermarkVisibility();
         }
 
         private _SyncFont() {
@@ -112,6 +113,7 @@ module Fayde.Controls {
         OnLostFocus(e: RoutedEventArgs) {
             super.OnLostFocus(e);
             this.$View.setIsFocused(false);
+            this._CheckWatermarkVisibility();
         }
 
         OnGotFocus(e: RoutedEventArgs) {
@@ -131,6 +133,7 @@ module Fayde.Controls {
 
             var cursor = this.$View.GetCursorFromPoint(e.GetPosition(this.$View));
             this.$Proxy.beginSelect(cursor);
+            this._CheckWatermarkVisibility();
         }
 
         OnMouseLeftButtonUp(e: Input.MouseButtonEventArgs) {
@@ -141,6 +144,7 @@ module Fayde.Controls {
             e.Handled = true;
             this._Selecting = false;
             this._Captured = false;
+            this._CheckWatermarkVisibility();
         }
 
         OnMouseMove(e: Input.MouseEventArgs) {
@@ -163,6 +167,7 @@ module Fayde.Controls {
             var pos = e.Device.GetTouchPoint(this.$View).Position;
             var cursor = this.$View.GetCursorFromPoint(pos);
             this.$Proxy.beginSelect(cursor);
+            this._CheckWatermarkVisibility();
         }
 
         OnTouchUp(e: Input.TouchEventArgs) {
@@ -173,6 +178,7 @@ module Fayde.Controls {
                 e.Device.ReleaseCapture(this);
             e.Handled = true;
             this._Selecting = false;
+            this._CheckWatermarkVisibility();
         }
 
         OnTouchMove(e: Input.TouchEventArgs) {
@@ -275,6 +281,7 @@ module Fayde.Controls {
                                 if (isReadOnly)
                                     break;
                                 this.$Clipboard.GetTextContents((text) => proxy.paste(text));
+                                this._CheckWatermarkVisibility();
                                 handled = true;
                                 break;
                             case Key.Y:
@@ -328,9 +335,9 @@ module Fayde.Controls {
             proxy.end();
         }
         
-        private _CheckWatermarkVisibility() {
+        protected _CheckWatermarkVisibility() {
             if (this.Watermark.length > 0 && this.$WatermarkElement)
-                this.$WatermarkElement.Visibility = this.$Proxy.text.length > 0 ? Visibility.Collapsed : Visibility.Visible;
+                this.$WatermarkElement.Visibility = this.$Proxy.text.length > 0 || this.IsFocused ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private _KeyDownBackSpace(modifiers: Input.IModifiersOn): boolean {

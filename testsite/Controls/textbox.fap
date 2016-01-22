@@ -29,6 +29,7 @@
         
         <StackPanel Grid.Row="4">
             <TextBox x:Name="TextBoxWatermark" Watermark="This is a watermark" Margin="5" />
+            <TextBox x:Name="TextBoxWatermarkWithText" Watermark="This is a watermark" Margin="5" Text="Some prepopulated text" />
             <TextBox x:Name="BigTextBoxWatermark" Margin="5" Watermark="This is a watermark in a big textbox" AcceptsReturn="True" TextWrapping="Wrap" Height="60" VerticalContentAlignment="Top" />
         </StackPanel>
 
