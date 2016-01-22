@@ -108,6 +108,7 @@ module Fayde.Controls {
             super.OnApplyTemplate();
             this.$ContentProxy.setElement(<FrameworkElement>this.GetTemplateChild("ContentElement", FrameworkElement), this.$View);
             this.$WatermarkElement = <FrameworkElement>this.GetTemplateChild("WatermarkElement", FrameworkElement);
+            this.$ContentProxy.setScrollElement(<FrameworkElement>this.GetTemplateChild("ScrollElement", FrameworkElement));
         }
 
         OnLostFocus(e: RoutedEventArgs) {
