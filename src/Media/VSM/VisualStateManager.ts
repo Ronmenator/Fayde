@@ -136,9 +136,13 @@ module Fayde.Media.VSM {
         }
 
         private static _GetTemplateRoot(control: Controls.Control): FrameworkElement {
+            if (control instanceof Controls.Page) {
+                return (<Controls.Page>control).XamlNode.XObject;
+            }
+            
             if (control instanceof Controls.UserControl)
                 return (<Controls.UserControl>control).XamlNode.TemplateRoot;
-
+            
             var enumerator = control.XamlNode.GetVisualTreeEnumerator();
             var node: FENode = null;
             if (enumerator.moveNext()) {
