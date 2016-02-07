@@ -64,7 +64,7 @@ module Fayde.Controls {
             }
             state.Seal();
             return true;
-        }
+        }        
     }
     Fayde.CoreLibrary.add(PageStateCollection);
 
@@ -80,7 +80,6 @@ module Fayde.Controls {
             Page.StatesProperty.Initialize(this).AttachTo(this);
             this.SizeChanged.on(this._UpdateState, this);
         }
-        
         private _UpdateState(sender, e: nullstone.IEventArgs) {
             if (this.States === undefined) {
                 this.SizeChanged.off(this._UpdateState, this);
@@ -99,7 +98,6 @@ module Fayde.Controls {
                 }
             }
         }
-        
         static GetAsync(initiator: DependencyObject, url: string): Promise<Page> {
             return Markup.Resolve(url)
                 .then(xm => {

@@ -100,7 +100,6 @@ module Fayde.Media.VSM {
             group.CurrentState = state;
             return true;
         }
-
         static DestroyStoryboards(control: Controls.Control, root: FrameworkElement) {
             if (!root)
                 return false;
@@ -112,7 +111,6 @@ module Fayde.Media.VSM {
                 (<VisualStateGroup>enumerator.current).StopCurrentStoryboards(root);
             }
         }
-
         static Deactivate (control: Controls.Control, root: FrameworkElement) {
             if (!root)
                 return false;
@@ -123,7 +121,6 @@ module Fayde.Media.VSM {
                 en.current.Deactivate();
             }
         }
-
         static Activate (control: Controls.Control, root: FrameworkElement) {
             if (!root)
                 return false;
@@ -134,7 +131,6 @@ module Fayde.Media.VSM {
                 en.current.Activate();
             }
         }
-
         private static _GetTemplateRoot(control: Controls.Control): FrameworkElement {
             if (control instanceof Controls.Page) {
                 return (<Controls.Page>control).XamlNode.XObject;
@@ -178,7 +174,6 @@ module Fayde.Media.VSM {
             data.state = null;
             return false;
         }
-
         private static _GetTransition(element: FrameworkElement, group: VisualStateGroup, from: VisualState, to: VisualState): VisualTransition {
             if (!element)
                 throw new ArgumentException("element");
