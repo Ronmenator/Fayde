@@ -13,7 +13,7 @@ module Fayde.Controls {
         static SelectionStartProperty = DependencyProperty.RegisterFull("SelectionStart", () => Number, TextBoxBase, 0, undefined, undefined, true, positiveIntValidator);
         static BaselineOffsetProperty = DependencyProperty.Register("BaselineOffset", () => Number, TextBoxBase);
         static MaxLengthProperty = DependencyProperty.RegisterFull("MaxLength", () => Number, TextBoxBase, 0, undefined, undefined, undefined, positiveIntValidator);
-        static SelectionOnFocusProperty = DependencyProperty.Register("SelectionOnFocus", () => new Enum(SelectionOnFocus), TextBoxBase, SelectionOnFocus.Default);
+        static WatermarkProperty = DependencyProperty.Register("Watermark", () => String, TextBoxBase, "");
 
         CaretBrush: Media.Brush;
         SelectionForeground: Media.Brush;
@@ -23,6 +23,7 @@ module Fayde.Controls {
         BaselineOffset: number;
         MaxLength: number;
         SelectionOnFocus: SelectionOnFocus;
+        Watermark: String;
 
         private _Selecting: boolean = false;
         private _Captured: boolean = false;
@@ -35,6 +36,7 @@ module Fayde.Controls {
         $Advancer: Internal.ICursorAdvancer;
         $View: Internal.TextBoxView;
         $Clipboard = Clipboard.Create();
+        $WatermarkElement: FrameworkElement;
 
         constructor(eventsMask: Text.EmitChangedType) {
             super();
@@ -43,6 +45,7 @@ module Fayde.Controls {
             view.MouseLeftButtonUp.on((s, e) => this.OnMouseLeftButtonUp(e), this);
             this.$Proxy = new Text.Proxy(eventsMask, MAX_UNDO_COUNT);
             this._SyncFont();
+            this._CheckWatermarkVisibility();
         }
 
         private _SyncFont() {
@@ -104,17 +107,21 @@ module Fayde.Controls {
         OnApplyTemplate() {
             super.OnApplyTemplate();
             this.$ContentProxy.setElement(<FrameworkElement>this.GetTemplateChild("ContentElement", FrameworkElement), this.$View);
+            this.$WatermarkElement = <FrameworkElement>this.GetTemplateChild("WatermarkElement", FrameworkElement);
+            this.$ContentProxy.setScrollElement(<FrameworkElement>this.GetTemplateChild("ScrollElement", FrameworkElement));
         }
 
         OnLostFocus(e: RoutedEventArgs) {
             super.OnLostFocus(e);
             this.$View.setIsFocused(false);
+            this._CheckWatermarkVisibility();
         }
 
         OnGotFocus(e: RoutedEventArgs) {
             super.OnGotFocus(e);
             this.$View.setIsFocused(true);
             this.selectBasedonSelectionMode();
+            this._CheckWatermarkVisibility();
         }
 
         OnMouseLeftButtonDown(e: Input.MouseButtonEventArgs) {
@@ -127,6 +134,7 @@ module Fayde.Controls {
 
             var cursor = this.$View.GetCursorFromPoint(e.GetPosition(this.$View));
             this.$Proxy.beginSelect(cursor);
+            this._CheckWatermarkVisibility();
         }
 
         OnMouseLeftButtonUp(e: Input.MouseButtonEventArgs) {
@@ -137,6 +145,7 @@ module Fayde.Controls {
             e.Handled = true;
             this._Selecting = false;
             this._Captured = false;
+            this._CheckWatermarkVisibility();
         }
 
         OnMouseMove(e: Input.MouseEventArgs) {
@@ -159,6 +168,7 @@ module Fayde.Controls {
             var pos = e.Device.GetTouchPoint(this.$View).Position;
             var cursor = this.$View.GetCursorFromPoint(pos);
             this.$Proxy.beginSelect(cursor);
+            this._CheckWatermarkVisibility();
         }
 
         OnTouchUp(e: Input.TouchEventArgs) {
@@ -169,6 +179,7 @@ module Fayde.Controls {
                 e.Device.ReleaseCapture(this);
             e.Handled = true;
             this._Selecting = false;
+            this._CheckWatermarkVisibility();
         }
 
         OnTouchMove(e: Input.TouchEventArgs) {
@@ -248,6 +259,8 @@ module Fayde.Controls {
                         switch (args.Key) {
                             case Key.A:
                                 //Ctrl+A => Select All
+                                if (isReadOnly)
+                                    break;
                                 handled = true;
                                 proxy.selectAll();
                                 break;
@@ -269,6 +282,7 @@ module Fayde.Controls {
                                 if (isReadOnly)
                                     break;
                                 this.$Clipboard.GetTextContents((text) => proxy.paste(text));
+                                this._CheckWatermarkVisibility();
                                 handled = true;
                                 break;
                             case Key.Y:
@@ -280,10 +294,10 @@ module Fayde.Controls {
                                 break;
                             case Key.Z:
                                 //Ctrl+Z => Undo
-                                if (!isReadOnly) {
-                                    handled = true;
-                                    proxy.undo();
-                                }
+                                if (isReadOnly)
+                                    break;
+                                handled = true;
+                                proxy.undo();
                                 break;
                         }
                     }
@@ -294,7 +308,8 @@ module Fayde.Controls {
                 args.Handled = handled;
             }
             proxy.end();
-
+            
+            this._CheckWatermarkVisibility();
             if (!args.Handled && !isReadOnly)
                 this.PostOnKeyDown(args);
         }
@@ -317,7 +332,13 @@ module Fayde.Controls {
                 proxy.enterText(args.Char);
                 args.Handled = true;
             }
+            this._CheckWatermarkVisibility();
             proxy.end();
+        }
+        
+        protected _CheckWatermarkVisibility() {
+            if (this.Watermark.length > 0 && this.$WatermarkElement)
+                this.$WatermarkElement.Visibility = this.$Proxy.text.length > 0 || this.IsFocused ? Visibility.Collapsed : Visibility.Visible;
         }
 
         private _KeyDownBackSpace(modifiers: Input.IModifiersOn): boolean {
