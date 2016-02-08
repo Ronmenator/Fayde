@@ -28,6 +28,7 @@ module Fayde.Controls {
             return a.localeCompare(b);
         }
     }
+    
     Fayde.CoreLibrary.add(PageState);
     
     export class PageStateCollection extends XamlObjectCollection<PageState> {
