@@ -1,15 +1,104 @@
 /// <reference path="UserControl.ts" />
+/// <reference path="../Core/XamlObjectCollection.ts" />
 
 module Fayde.Controls {
+
+    export class PageState extends DependencyObject {
+        private _IsSealed: boolean = false;
+        
+        static VisualStateNameProperty = DependencyProperty.Register("VisualStateName", () => String, PageState);
+        static MinXProperty = DependencyProperty.Register("MinX", () => Number, PageState);
+        static MinYProperty = DependencyProperty.Register("MinY", () => Number, PageState);
+        static MaxXProperty = DependencyProperty.Register("MaxX", () => Number, PageState);
+        static MaxYProperty = DependencyProperty.Register("MaxY", () => Number, PageState);
+        
+        VisualStateName: string;
+        MinX: number;
+        MinY: number;
+        MaxX: number;
+        MaxY: number;
+
+        Seal () {
+            this._IsSealed = true;
+        }
+
+        static Compare (state1: PageState, state2: PageState): number {
+            var a = state1.VisualStateName;
+            var b = state2.VisualStateName;
+            return a.localeCompare(b);
+        }
+    }
+    
+    Fayde.CoreLibrary.add(PageState);
+    
+    export class PageStateCollection extends XamlObjectCollection<PageState> {
+        private _IsSealed: boolean = false;
+        XamlNode: XamlNode;
+
+        Seal () {
+            if (this._IsSealed)
+                return;
+            for (var en = this.getEnumerator(); en.moveNext();) {
+                en.current.Seal();
+            }
+            this._IsSealed = true;
+        }
+
+        AddingToCollection (value: PageState, error: BError): boolean {
+            if (!value || !this._ValidatePageState(<PageState>value, error))
+                return false;
+            return super.AddingToCollection(value, error);
+        }
+
+        private _ValidatePageState (state: PageState, error: BError) {
+            if (state.VisualStateName === undefined) {
+                error.Message = "PageState.VisualStateName is required.";
+                return false;
+            }
+            if (state.MinX === undefined || state.MaxX === undefined || state.MinY === undefined || state.MaxY === undefined) {
+                error.Message = "PageState.(MinX, MaxX, MinY, MaxY) must have Values.";
+                return false;
+            }
+            if (this._IsSealed) {
+                error.Message = "PageState is sealed.";
+                return false;
+            }
+            state.Seal();
+            return true;
+        }        
+    }
+    Fayde.CoreLibrary.add(PageStateCollection);
+
     export class Page extends UserControl {
         static TitleProperty = DependencyProperty.Register("Title", () => String, Page);
+        static StatesProperty = DependencyProperty.RegisterImmutable<PageStateCollection>("States", () => PageStateCollection, Page);
+        States: PageStateCollection;
         Title: string;
 
         constructor() {
             super();
             this.DefaultStyleKey = Page;
+            Page.StatesProperty.Initialize(this).AttachTo(this);
+            this.SizeChanged.on(this._UpdateState, this);
         }
-
+        private _UpdateState(sender, e: nullstone.IEventArgs) {
+            if (this.States === undefined) {
+                this.SizeChanged.off(this._UpdateState, this);
+                return;
+            }
+            var width = window.innerWidth;
+            var height = window.innerHeight;
+            var enumerator = this.States.getEnumerator();
+            while(enumerator.moveNext()) {
+                var item = <PageState>enumerator.current;
+                if (item === undefined) continue;
+                if (width >= item.MinX && width <= item.MaxX &&
+                    height >= item.MinY && height <= item.MaxY){
+                    Media.VSM.VisualStateManager.GoToState(this, item.VisualStateName, true);
+                    break;
+                }
+            }
+        }
         static GetAsync(initiator: DependencyObject, url: string): Promise<Page> {
             return Markup.Resolve(url)
                 .then(xm => {
