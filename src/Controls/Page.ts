@@ -7,12 +7,14 @@ module Fayde.Controls {
         private _IsSealed: boolean = false;
         
         static VisualStateNameProperty = DependencyProperty.Register("VisualStateName", () => String, PageState);
+        static DeviceProperty = DependencyProperty.Register("Device", () => String, PageState);
         static MinXProperty = DependencyProperty.Register("MinX", () => Number, PageState);
         static MinYProperty = DependencyProperty.Register("MinY", () => Number, PageState);
         static MaxXProperty = DependencyProperty.Register("MaxX", () => Number, PageState);
         static MaxYProperty = DependencyProperty.Register("MaxY", () => Number, PageState);
         
         VisualStateName: string;
+        Device: string;
         MinX: number;
         MinY: number;
         MaxX: number;
@@ -78,9 +80,24 @@ module Fayde.Controls {
         constructor() {
             super();
             this.DefaultStyleKey = Page;
+            
+            // Initialize the page states
             Page.StatesProperty.Initialize(this).AttachTo(this);
             this.SizeChanged.on(this._UpdateState, this);
+                        
+            if (window.orientation === undefined) return; // only if the browser/device we are on supports the orientation flag
+            // Subscribe to PC Orientation Changes
+            window.addEventListener("deviceorientation", this._OrientationChanged, true);
         }
+        
+        private _OrientationChanged(ev: DeviceOrientationEvent) {
+            // alpha value ranges from 0 to 360 around the Z axis where 0 is Portrait, 90 is Landscape rotated to the left
+            var alpha = ev.alpha;
+            
+            if (alpha >= 45)
+            
+        }
+        
         private _UpdateState(sender, e: nullstone.IEventArgs) {
             if (this.States === undefined) {
                 this.SizeChanged.off(this._UpdateState, this);
@@ -94,11 +111,16 @@ module Fayde.Controls {
                 if (item === undefined) continue;
                 if (width >= item.MinX && width <= item.MaxX &&
                     height >= item.MinY && height <= item.MaxY){
-                    Media.VSM.VisualStateManager.GoToState(this, item.VisualStateName, true);
+                    this._goToState(item.VisualStateName);
                     break;
                 }
             }
         }
+        
+        private _goToState(state: string){
+            Media.VSM.VisualStateManager.GoToState(this, state, true);
+        }
+        
         static GetAsync(initiator: DependencyObject, url: string): Promise<Page> {
             return Markup.Resolve(url)
                 .then(xm => {
