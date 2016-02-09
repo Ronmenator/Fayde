@@ -109,6 +109,7 @@ module Fayde.Controls {
             this.$ContentProxy.setElement(<FrameworkElement>this.GetTemplateChild("ContentElement", FrameworkElement), this.$View);
             this.$WatermarkElement = <FrameworkElement>this.GetTemplateChild("WatermarkElement", FrameworkElement);
             this.$ContentProxy.setScrollElement(<FrameworkElement>this.GetTemplateChild("ScrollElement", FrameworkElement));
+            this._CheckWatermarkVisibility();
         }
 
         OnLostFocus(e: RoutedEventArgs) {
@@ -336,7 +337,7 @@ module Fayde.Controls {
             proxy.end();
         }
         
-        protected _CheckWatermarkVisibility() {
+        _CheckWatermarkVisibility() {
             if (this.Watermark.length > 0 && this.$WatermarkElement)
                 this.$WatermarkElement.Visibility = this.$Proxy.text.length > 0 || this.IsFocused ? Visibility.Collapsed : Visibility.Visible;
         }
