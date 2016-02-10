@@ -5,39 +5,39 @@ module Fayde.Controls {
 
     export class PageState extends DependencyObject {
         private _IsSealed: boolean = false;
-        
-        static VisualStateNameProperty = DependencyProperty.Register("VisualStateName", () => String, PageState);
-        static DeviceProperty = DependencyProperty.Register("Device", () => String, PageState);
-        static MinXProperty = DependencyProperty.Register("MinX", () => Number, PageState);
-        static MinYProperty = DependencyProperty.Register("MinY", () => Number, PageState);
-        static MaxXProperty = DependencyProperty.Register("MaxX", () => Number, PageState);
-        static MaxYProperty = DependencyProperty.Register("MaxY", () => Number, PageState);
-        
+
+        static VisualStateNameProperty = DependencyProperty.Register("VisualStateName", () => String, PageState, "Normal");
+        static DeviceProperty = DependencyProperty.Register("Device", () => new Enum(DeviceType), PageState, DeviceType.PC);
+        static MinXProperty = DependencyProperty.Register("MinX", () => Number, PageState, 0);
+        static MinYProperty = DependencyProperty.Register("MinY", () => Number, PageState, 0);
+        static MaxXProperty = DependencyProperty.Register("MaxX", () => Number, PageState, Number.MAX_VALUE);
+        static MaxYProperty = DependencyProperty.Register("MaxY", () => Number, PageState, Number.MAX_VALUE);
+
         VisualStateName: string;
-        Device: string;
+        Device: DeviceType;
         MinX: number;
         MinY: number;
         MaxX: number;
         MaxY: number;
 
-        Seal () {
+        Seal() {
             this._IsSealed = true;
         }
 
-        static Compare (state1: PageState, state2: PageState): number {
+        static Compare(state1: PageState, state2: PageState): number {
             var a = state1.VisualStateName;
             var b = state2.VisualStateName;
             return a.localeCompare(b);
         }
     }
-    
+
     Fayde.CoreLibrary.add(PageState);
-    
+
     export class PageStateCollection extends XamlObjectCollection<PageState> {
         private _IsSealed: boolean = false;
         XamlNode: XamlNode;
 
-        Seal () {
+        Seal() {
             if (this._IsSealed)
                 return;
             for (var en = this.getEnumerator(); en.moveNext();) {
@@ -46,13 +46,13 @@ module Fayde.Controls {
             this._IsSealed = true;
         }
 
-        AddingToCollection (value: PageState, error: BError): boolean {
+        AddingToCollection(value: PageState, error: BError): boolean {
             if (!value || !this._ValidatePageState(<PageState>value, error))
                 return false;
             return super.AddingToCollection(value, error);
         }
 
-        private _ValidatePageState (state: PageState, error: BError) {
+        private _ValidatePageState(state: PageState, error: BError) {
             if (state.VisualStateName === undefined) {
                 error.Message = "PageState.VisualStateName is required.";
                 return false;
@@ -67,7 +67,7 @@ module Fayde.Controls {
             }
             state.Seal();
             return true;
-        }        
+        }
     }
     Fayde.CoreLibrary.add(PageStateCollection);
 
@@ -76,6 +76,8 @@ module Fayde.Controls {
         static StatesProperty = DependencyProperty.RegisterImmutable<PageStateCollection>("States", () => PageStateCollection, Page);
         States: PageStateCollection;
         Title: string;
+        Device: DeviceType = DeviceType.PC;
+        DeviceOrientation: DeviceOrientation = DeviceOrientation.Landscape; // PC is always in Landscape mode
 
         constructor() {
             super();
@@ -83,21 +85,43 @@ module Fayde.Controls {
             
             // Initialize the page states
             Page.StatesProperty.Initialize(this).AttachTo(this);
+
+            this._initializeDeviceType();
+            this._initializeSizeChanges();
+            this._initializeOrientation();
+        }
+        
+        private _initializeOrientation(){
+            window.onorientationchange = (e) => this._OrientationChanged(e);
+        }
+
+        private _initializeDeviceType() {
+            if (/Mobi/.test(navigator.userAgent))
+                this.Device = DeviceType.Phone;
+            else
+                this.Device = DeviceType.PC;
+            // set the initial state for the page
+            this._OrientationChanged(null);
+            this._goToState(this.Device == DeviceType.PC ? "Landscape" : "Portrait");
+        }
+
+        private _initializeSizeChanges() {
             this.SizeChanged.on(this._UpdateState, this);
-                        
-            if (window.orientation === undefined) return; // only if the browser/device we are on supports the orientation flag
-            // Subscribe to PC Orientation Changes
-            window.addEventListener("deviceorientation", this._OrientationChanged, true);
         }
-        
-        private _OrientationChanged(ev: DeviceOrientationEvent) {
-            // alpha value ranges from 0 to 360 around the Z axis where 0 is Portrait, 90 is Landscape rotated to the left
-            var alpha = ev.alpha;
-            
-            if (alpha >= 45)
-            
+
+        private _OrientationChanged(ev: any) {
+            if (window.orientation === undefined) return;
+            var alpha = window.orientation;
+            if (alpha === -90 || alpha === 90) {
+                this._goToState("Landscape");
+                this.DeviceOrientation = DeviceOrientation.Landscape;
+            }
+            else {
+                this._goToState("Portrait");
+                this.DeviceOrientation = DeviceOrientation.Portrait;
+            }
         }
-        
+
         private _UpdateState(sender, e: nullstone.IEventArgs) {
             if (this.States === undefined) {
                 this.SizeChanged.off(this._UpdateState, this);
@@ -106,21 +130,22 @@ module Fayde.Controls {
             var width = window.innerWidth;
             var height = window.innerHeight;
             var enumerator = this.States.getEnumerator();
-            while(enumerator.moveNext()) {
+            while (enumerator.moveNext()) {
                 var item = <PageState>enumerator.current;
                 if (item === undefined) continue;
                 if (width >= item.MinX && width <= item.MaxX &&
-                    height >= item.MinY && height <= item.MaxY){
+                    height >= item.MinY && height <= item.MaxY &&
+                    this.Device === item.Device) {
                     this._goToState(item.VisualStateName);
                     break;
                 }
             }
         }
-        
-        private _goToState(state: string){
+
+        private _goToState(state: string) {
             Media.VSM.VisualStateManager.GoToState(this, state, true);
         }
-        
+
         static GetAsync(initiator: DependencyObject, url: string): Promise<Page> {
             return Markup.Resolve(url)
                 .then(xm => {

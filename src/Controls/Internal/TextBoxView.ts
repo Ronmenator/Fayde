@@ -10,19 +10,19 @@ module Fayde.Controls.Internal {
     export class TextBoxView extends FrameworkElement {
         XamlNode: TextBoxViewNode;
 
-        CreateLayoutUpdater () {
+        CreateLayoutUpdater() {
             return new TextBoxViewUpdater();
         }
 
         private _AutoRun = new Documents.Run();
 
-        constructor () {
+        constructor() {
             super();
             this.XamlNode.LayoutUpdater.tree.onTextAttached(this._AutoRun.TextUpdater);
             ReactTo(this._AutoRun, this, this._InlineChanged);
         }
 
-        private _InlineChanged (obj?: any) {
+        private _InlineChanged(obj?: any) {
             var updater = this.XamlNode.LayoutUpdater;
             switch (obj.type) {
                 case 'font':
@@ -34,23 +34,23 @@ module Fayde.Controls.Internal {
             }
         }
 
-        setFontProperty (propd: DependencyProperty, value: any) {
+        setFontProperty(propd: DependencyProperty, value: any) {
             this._AutoRun.SetValue(propd, value);
         }
 
-        setFontAttr (attrName: string, value: any) {
+        setFontAttr(attrName: string, value: any) {
             var runUpdater = this._AutoRun;
             var tu = runUpdater.TextUpdater;
             tu.assets[attrName] = value;
         }
 
-        setCaretBrush (value: Media.Brush) {
+        setCaretBrush(value: Media.Brush) {
             var updater = this.XamlNode.LayoutUpdater;
             updater.assets.caretBrush = value;
             updater.invalidateCaret();
         }
 
-        setIsFocused (isFocused: boolean) {
+        setIsFocused(isFocused: boolean) {
             var updater = <TextBoxViewUpdater>this.XamlNode.LayoutUpdater;
             if (updater.assets.isFocused === isFocused)
                 return;
@@ -58,7 +58,7 @@ module Fayde.Controls.Internal {
             updater.resetCaretBlinker(false);
         }
 
-        setIsReadOnly (isReadOnly: boolean) {
+        setIsReadOnly(isReadOnly: boolean) {
             var updater = this.XamlNode.LayoutUpdater;
             if (updater.assets.isReadOnly === isReadOnly)
                 return;
@@ -66,7 +66,7 @@ module Fayde.Controls.Internal {
             updater.resetCaretBlinker(false);
         }
 
-        setTextAlignment (textAlignment: TextAlignment) {
+        setTextAlignment(textAlignment: TextAlignment) {
             var lu = this.XamlNode.LayoutUpdater;
             if (lu.assets.textAlignment === <number>textAlignment)
                 return;
@@ -76,7 +76,7 @@ module Fayde.Controls.Internal {
             lu.invalidate();
         }
 
-        setTextWrapping (textWrapping: TextWrapping) {
+        setTextWrapping(textWrapping: TextWrapping) {
             var lu = this.XamlNode.LayoutUpdater;
             if (lu.assets.textWrapping === <number>textWrapping)
                 return;
@@ -86,7 +86,7 @@ module Fayde.Controls.Internal {
             lu.invalidate();
         }
 
-        setSelectionStart (selectionStart: number) {
+        setSelectionStart(selectionStart: number) {
             var lu = this.XamlNode.LayoutUpdater;
             if (lu.assets.selectionStart === selectionStart)
                 return;
@@ -94,7 +94,7 @@ module Fayde.Controls.Internal {
             lu.invalidateSelectionStart();
         }
 
-        setSelectionLength (selectionLength: number) {
+        setSelectionLength(selectionLength: number) {
             var lu = this.XamlNode.LayoutUpdater;
             if (lu.assets.selectionLength === selectionLength)
                 return;
@@ -103,7 +103,7 @@ module Fayde.Controls.Internal {
             lu.invalidateSelectionLength(switching);
         }
 
-        setText (text: string) {
+        setText(text: string) {
             this._AutoRun.Text = text || "";
         }
 
@@ -129,7 +129,7 @@ module Fayde.Controls.Internal {
          }
          */
 
-        GetCursorFromPoint (point: Point): number {
+        GetCursorFromPoint(point: Point): number {
             return this.XamlNode.LayoutUpdater.getCursorFromPoint(point);
         }
     }

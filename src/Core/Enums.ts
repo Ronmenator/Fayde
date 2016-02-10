@@ -96,4 +96,16 @@ module Fayde {
         BlockLineHeight = 1,
     }
     Fayde.CoreLibrary.addEnum(LineStackingStrategy, "LineStackingStrategy");
+    
+    export enum DeviceOrientation {
+        Portrait = 0,
+        Landscape = 1,
+    }
+    Fayde.CoreLibrary.addEnum(DeviceOrientation, "DeviceOrientation");    
+    
+    export enum DeviceType {
+        PC = 0,
+        Phone = 1,
+    }
+    Fayde.CoreLibrary.addEnum(DeviceType, "DeviceType");    
 }
