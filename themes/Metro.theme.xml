@@ -16,7 +16,7 @@
     <Color x:Key="AccentColor3">#66119EDA</Color>
     <!--20%-->
     <Color x:Key="AccentColor4">#33119EDA</Color>
-
+    
     <!--BASE COLORS-->
     <Color x:Key="BlackColor">#FF000000</Color>
     <Color x:Key="WhiteColor">#FFFFFFFF</Color>
