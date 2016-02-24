@@ -1,3 +1,7 @@
+var Fayde;
+(function (Fayde) {
+    Fayde.version = '0.19.16';
+})(Fayde || (Fayde = {}));
 if (!Function.prototype.bind) {
     Function.prototype.bind = function (oThis) {
         if (typeof this !== 'function') {
@@ -662,38 +666,6 @@ var Fayde;
         Fayde.CoreLibrary.add(Collections.ObservableCollection);
         nullstone.addTypeInterfaces(ReadOnlyObservableCollection, nullstone.ICollection_, Collections.INotifyCollectionChanged_, Fayde.INotifyPropertyChanged_);
     })(Collections = Fayde.Collections || (Fayde.Collections = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    function Clone(value) {
-        if (value === undefined)
-            return undefined;
-        if (value === null)
-            return null;
-        if (value instanceof Array)
-            return value.slice(0);
-        if (value !== Object(value))
-            return value;
-        if (value.Clone instanceof Function)
-            return value.Clone();
-        return extend(new value.constructor(), value);
-    }
-    Fayde.Clone = Clone;
-    function extend(obj) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
-        var s;
-        for (var i = 0, len = args.length; i < len; i++) {
-            if (s = args[i]) {
-                for (var prop in s) {
-                    obj[prop] = s[prop];
-                }
-            }
-        }
-        return obj;
-    }
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
@@ -1784,316 +1756,6 @@ var Fayde;
     Fayde.CoreLibrary.add(DependencyObject);
     DependencyObject.DataContextProperty.Store = Fayde.Providers.DataContextStore.Instance;
 })(Fayde || (Fayde = {}));
-/// <reference path="../Core/DependencyObject" />
-var Fayde;
-(function (Fayde) {
-    var Markup;
-    (function (Markup) {
-        var FrameworkTemplate = (function (_super) {
-            __extends(FrameworkTemplate, _super);
-            function FrameworkTemplate() {
-                _super.apply(this, arguments);
-            }
-            FrameworkTemplate.prototype.Validate = function () {
-                return "";
-            };
-            FrameworkTemplate.prototype.GetVisualTree = function (bindingSource) {
-                var uie = LoadImpl(this.App, this.$$markup, this.$$resources, bindingSource);
-                if (!(uie instanceof Fayde.UIElement))
-                    throw new XamlParseException("Template root visual is not a UIElement.");
-                return uie;
-            };
-            return FrameworkTemplate;
-        })(Fayde.DependencyObject);
-        Markup.FrameworkTemplate = FrameworkTemplate;
-        function setTemplateRoot(ft, root) {
-            if (root instanceof Element)
-                ft.$$markup = Markup.CreateXaml(root);
-        }
-        function setResources(ft, res) {
-            ft.$$resources = res;
-        }
-        function LoadXaml(app, xaml) {
-            var markup = Markup.CreateXaml(xaml);
-            return Load(app, markup);
-        }
-        Markup.LoadXaml = LoadXaml;
-        function Load(app, xm) {
-            return LoadImpl(app, xm);
-        }
-        Markup.Load = Load;
-        function LoadImpl(app, xm, resources, bindingSource) {
-            perfex.timer.start('MarkupLoad', xm.uri.toString());
-            var oresolve = {
-                isPrimitive: false,
-                type: undefined
-            };
-            var namescope = new Fayde.NameScope(true);
-            var active = Markup.Internal.createActiveObject(app, namescope, bindingSource);
-            var pactor = Markup.Internal.createPropertyActor(active, extractType, extractDP);
-            var oactor = Markup.Internal.createObjectActor(pactor);
-            var ractor = Markup.Internal.createResourcesActor(active, resources);
-            var last;
-            var parser = xm.createParser()
-                .setNamespaces(Fayde.XMLNS, Fayde.XMLNSX);
-            var parse = {
-                resolveType: function (uri, name) {
-                    if (!Fayde.TypeManager.resolveType(uri, name, oresolve))
-                        throw new XamlParseException("Could not resolve type [" + uri + "][" + name + "].");
-                    return oresolve;
-                },
-                resolveObject: function (type) {
-                    if (type === Fayde.ResourceDictionary && !pactor.isNewResources())
-                        return undefined;
-                    perfex.timer.start('MarkupCreateObject', type);
-                    var obj = new (type)();
-                    if (obj instanceof FrameworkTemplate)
-                        parser.skipBranch();
-                    else if (obj instanceof Markup.StaticResource)
-                        obj.setContext(active.getApp(), resources);
-                    perfex.timer.stop();
-                    return obj;
-                },
-                resolvePrimitive: function (type, text) {
-                    return nullstone.convertAnyToType(text, type);
-                },
-                resolveResources: function (owner, ownerType) {
-                    var rd = owner.Resources;
-                    return rd;
-                },
-                branchSkip: function (root, obj) {
-                    if (obj instanceof FrameworkTemplate) {
-                        var ft = last = obj;
-                        var err = obj.Validate();
-                        if (err)
-                            throw new XamlParseException(err);
-                        setTemplateRoot(ft, root);
-                        setResources(ft, ractor.get());
-                    }
-                },
-                object: function (obj, isContent) {
-                    active.set(obj);
-                    oactor.start();
-                    ractor.start();
-                },
-                objectEnd: function (obj, key, isContent, prev) {
-                    last = obj;
-                    ractor.end();
-                    oactor.end();
-                    active.set(prev);
-                    if (!active.obj)
-                        return;
-                    if (isContent) {
-                        pactor.startContent();
-                        pactor.addObject(obj, key);
-                        pactor.end();
-                    }
-                    else {
-                        pactor.addObject(obj, key);
-                    }
-                },
-                contentText: function (text) {
-                    pactor.setContentText(text);
-                },
-                name: function (name) {
-                    active.setName(name);
-                },
-                propertyStart: function (ownerType, propName) {
-                    pactor.start(ownerType, propName);
-                },
-                propertyEnd: function (ownerType, propName) {
-                    pactor.end();
-                },
-                attributeStart: function (ownerType, attrName) {
-                },
-                attributeEnd: function (ownerType, attrName, obj) {
-                    pactor.setObject(ownerType, attrName, obj);
-                },
-                error: function (err) {
-                    if (err instanceof nullstone.markup.xaml.SkipBranchError) {
-                        if (active.obj instanceof FrameworkTemplate)
-                            throw new XamlParseException("Templates must contain only 1 visual root and no other child elements.", err.root);
-                    }
-                    throw new XamlParseException("Invalid XAML in document '" + xm.uri + "'", err);
-                    return false;
-                },
-                end: function () {
-                }
-            };
-            function extractType(text) {
-                var prefix = null;
-                var name = text;
-                var ind = name.indexOf(':');
-                if (ind > -1) {
-                    prefix = name.substr(0, ind);
-                    name = name.substr(ind + 1);
-                }
-                var uri = parser.resolvePrefix(prefix);
-                Fayde.TypeManager.resolveType(uri, name, oresolve);
-                return oresolve.type;
-            }
-            function extractDP(text) {
-                var name = text;
-                var ind = name.indexOf('.');
-                var ownerType;
-                if (ind > -1) {
-                    ownerType = extractType(name.substr(0, ind));
-                    name = name.substr(ind + 1);
-                }
-                else {
-                    for (var en = parser.walkUpObjects(); en.moveNext();) {
-                        var style = en.current;
-                        if (style instanceof Fayde.Style) {
-                            ownerType = style.TargetType;
-                            if (!ownerType)
-                                throw new XamlParseException("Style must have a TargetType.");
-                            break;
-                        }
-                    }
-                }
-                return (ownerType)
-                    ? DependencyProperty.GetDependencyProperty(ownerType, name)
-                    : null;
-            }
-            parser.on(parse)
-                .parse(xm.root);
-            if (last instanceof Fayde.XamlObject) {
-                last.XamlNode.NameScope = namescope;
-            }
-            perfex.timer.stop();
-            return last;
-        }
-    })(Markup = Fayde.Markup || (Fayde.Markup = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="../Markup/Loader" />
-var Fayde;
-(function (Fayde) {
-    var DataTemplate = (function (_super) {
-        __extends(DataTemplate, _super);
-        function DataTemplate() {
-            _super.apply(this, arguments);
-        }
-        DataTemplate.DataTypeProperty = DependencyProperty.Register("DataType", function () { return Fayde.IType_; }, DataTemplate);
-        return DataTemplate;
-    })(Fayde.Markup.FrameworkTemplate);
-    Fayde.DataTemplate = DataTemplate;
-    Fayde.CoreLibrary.add(DataTemplate);
-})(Fayde || (Fayde = {}));
-var DependencyPropertyChangedEventArgs = (function () {
-    function DependencyPropertyChangedEventArgs() {
-    }
-    return DependencyPropertyChangedEventArgs;
-})();
-var Fayde;
-(function (Fayde) {
-    (function (Orientation) {
-        Orientation[Orientation["Horizontal"] = 0] = "Horizontal";
-        Orientation[Orientation["Vertical"] = 1] = "Vertical";
-    })(Fayde.Orientation || (Fayde.Orientation = {}));
-    var Orientation = Fayde.Orientation;
-    Fayde.CoreLibrary.addEnum(Orientation, "Orientation");
-    (function (Visibility) {
-        Visibility[Visibility["Visible"] = 0] = "Visible";
-        Visibility[Visibility["Collapsed"] = 1] = "Collapsed";
-    })(Fayde.Visibility || (Fayde.Visibility = {}));
-    var Visibility = Fayde.Visibility;
-    Fayde.CoreLibrary.addEnum(Visibility, "Visibility");
-    nullstone.registerEnumConverter(Visibility, function (val) {
-        if (val === "true" || val === true || val === Visibility.Visible || val === "Visible")
-            return Visibility.Visible;
-        return Visibility.Collapsed;
-    });
-    (function (CursorType) {
-        CursorType[CursorType["Default"] = 0] = "Default";
-        CursorType[CursorType["Hand"] = 1] = "Hand";
-        CursorType[CursorType["IBeam"] = 2] = "IBeam";
-        CursorType[CursorType["Wait"] = 3] = "Wait";
-        CursorType[CursorType["SizeNESW"] = 4] = "SizeNESW";
-        CursorType[CursorType["SizeNWSE"] = 5] = "SizeNWSE";
-        CursorType[CursorType["SizeNS"] = 6] = "SizeNS";
-        CursorType[CursorType["SizeWE"] = 7] = "SizeWE";
-    })(Fayde.CursorType || (Fayde.CursorType = {}));
-    var CursorType = Fayde.CursorType;
-    Fayde.CoreLibrary.addEnum(CursorType, "CursorType");
-    Fayde.CursorTypeMappings = {
-        Default: "",
-        Hand: "pointer",
-        IBeam: "text",
-        Wait: "wait",
-        SizeNESW: "ne-resize",
-        SizeNWSE: "nw-resize",
-        SizeNS: "n-resize",
-        SizeWE: "w-resize"
-    };
-    (function (HorizontalAlignment) {
-        HorizontalAlignment[HorizontalAlignment["Left"] = 0] = "Left";
-        HorizontalAlignment[HorizontalAlignment["Center"] = 1] = "Center";
-        HorizontalAlignment[HorizontalAlignment["Right"] = 2] = "Right";
-        HorizontalAlignment[HorizontalAlignment["Stretch"] = 3] = "Stretch";
-    })(Fayde.HorizontalAlignment || (Fayde.HorizontalAlignment = {}));
-    var HorizontalAlignment = Fayde.HorizontalAlignment;
-    Fayde.CoreLibrary.addEnum(HorizontalAlignment, "HorizontalAlignment");
-    (function (VerticalAlignment) {
-        VerticalAlignment[VerticalAlignment["Top"] = 0] = "Top";
-        VerticalAlignment[VerticalAlignment["Center"] = 1] = "Center";
-        VerticalAlignment[VerticalAlignment["Bottom"] = 2] = "Bottom";
-        VerticalAlignment[VerticalAlignment["Stretch"] = 3] = "Stretch";
-    })(Fayde.VerticalAlignment || (Fayde.VerticalAlignment = {}));
-    var VerticalAlignment = Fayde.VerticalAlignment;
-    Fayde.CoreLibrary.addEnum(VerticalAlignment, "VerticalAlignment");
-    (function (FlowDirection) {
-        FlowDirection[FlowDirection["LeftToRight"] = 0] = "LeftToRight";
-        FlowDirection[FlowDirection["RightToLeft"] = 1] = "RightToLeft";
-    })(Fayde.FlowDirection || (Fayde.FlowDirection = {}));
-    var FlowDirection = Fayde.FlowDirection;
-    Fayde.CoreLibrary.addEnum(FlowDirection, "FlowDirection");
-    (function (FontWeight) {
-        FontWeight[FontWeight["Thin"] = 100] = "Thin";
-        FontWeight[FontWeight["ExtraLight"] = 200] = "ExtraLight";
-        FontWeight[FontWeight["Light"] = 300] = "Light";
-        FontWeight[FontWeight["Normal"] = 400] = "Normal";
-        FontWeight[FontWeight["Medium"] = 500] = "Medium";
-        FontWeight[FontWeight["SemiBold"] = 600] = "SemiBold";
-        FontWeight[FontWeight["Bold"] = 700] = "Bold";
-        FontWeight[FontWeight["ExtraBold"] = 800] = "ExtraBold";
-        FontWeight[FontWeight["Black"] = 900] = "Black";
-        FontWeight[FontWeight["ExtraBlack"] = 950] = "ExtraBlack";
-    })(Fayde.FontWeight || (Fayde.FontWeight = {}));
-    var FontWeight = Fayde.FontWeight;
-    Fayde.CoreLibrary.addEnum(FontWeight, "FontWeight");
-    (function (TextAlignment) {
-        TextAlignment[TextAlignment["Left"] = 0] = "Left";
-        TextAlignment[TextAlignment["Center"] = 1] = "Center";
-        TextAlignment[TextAlignment["Right"] = 2] = "Right";
-        TextAlignment[TextAlignment["Justify"] = 3] = "Justify";
-    })(Fayde.TextAlignment || (Fayde.TextAlignment = {}));
-    var TextAlignment = Fayde.TextAlignment;
-    Fayde.CoreLibrary.addEnum(TextAlignment, "TextAlignment");
-    (function (TextDecorations) {
-        TextDecorations[TextDecorations["None"] = 0] = "None";
-        TextDecorations[TextDecorations["Underline"] = 1] = "Underline";
-    })(Fayde.TextDecorations || (Fayde.TextDecorations = {}));
-    var TextDecorations = Fayde.TextDecorations;
-    Fayde.CoreLibrary.addEnum(TextDecorations, "TextDecorations");
-    (function (LineStackingStrategy) {
-        LineStackingStrategy[LineStackingStrategy["MaxHeight"] = 0] = "MaxHeight";
-        LineStackingStrategy[LineStackingStrategy["BlockLineHeight"] = 1] = "BlockLineHeight";
-    })(Fayde.LineStackingStrategy || (Fayde.LineStackingStrategy = {}));
-    var LineStackingStrategy = Fayde.LineStackingStrategy;
-    Fayde.CoreLibrary.addEnum(LineStackingStrategy, "LineStackingStrategy");
-    (function (DeviceOrientation) {
-        DeviceOrientation[DeviceOrientation["Portrait"] = 0] = "Portrait";
-        DeviceOrientation[DeviceOrientation["Landscape"] = 1] = "Landscape";
-    })(Fayde.DeviceOrientation || (Fayde.DeviceOrientation = {}));
-    var DeviceOrientation = Fayde.DeviceOrientation;
-    Fayde.CoreLibrary.addEnum(DeviceOrientation, "DeviceOrientation");
-    (function (DeviceType) {
-        DeviceType[DeviceType["PC"] = 0] = "PC";
-        DeviceType[DeviceType["Phone"] = 1] = "Phone";
-    })(Fayde.DeviceType || (Fayde.DeviceType = {}));
-    var DeviceType = Fayde.DeviceType;
-    Fayde.CoreLibrary.addEnum(DeviceType, "DeviceType");
-})(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
     function UIReaction(propd, callback, listen, sync, instance) {
@@ -2292,6 +1954,104 @@ var Fayde;
         Providers.InheritedStore = InheritedStore;
         InheritedStore.Instance = new InheritedStore();
     })(Providers = Fayde.Providers || (Fayde.Providers = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    (function (Orientation) {
+        Orientation[Orientation["Horizontal"] = 0] = "Horizontal";
+        Orientation[Orientation["Vertical"] = 1] = "Vertical";
+    })(Fayde.Orientation || (Fayde.Orientation = {}));
+    var Orientation = Fayde.Orientation;
+    Fayde.CoreLibrary.addEnum(Orientation, "Orientation");
+    (function (Visibility) {
+        Visibility[Visibility["Visible"] = 0] = "Visible";
+        Visibility[Visibility["Collapsed"] = 1] = "Collapsed";
+    })(Fayde.Visibility || (Fayde.Visibility = {}));
+    var Visibility = Fayde.Visibility;
+    Fayde.CoreLibrary.addEnum(Visibility, "Visibility");
+    nullstone.registerEnumConverter(Visibility, function (val) {
+        if (val === "true" || val === true || val === Visibility.Visible || val === "Visible")
+            return Visibility.Visible;
+        return Visibility.Collapsed;
+    });
+    (function (CursorType) {
+        CursorType[CursorType["Default"] = 0] = "Default";
+        CursorType[CursorType["Hand"] = 1] = "Hand";
+        CursorType[CursorType["IBeam"] = 2] = "IBeam";
+        CursorType[CursorType["Wait"] = 3] = "Wait";
+        CursorType[CursorType["SizeNESW"] = 4] = "SizeNESW";
+        CursorType[CursorType["SizeNWSE"] = 5] = "SizeNWSE";
+        CursorType[CursorType["SizeNS"] = 6] = "SizeNS";
+        CursorType[CursorType["SizeWE"] = 7] = "SizeWE";
+    })(Fayde.CursorType || (Fayde.CursorType = {}));
+    var CursorType = Fayde.CursorType;
+    Fayde.CoreLibrary.addEnum(CursorType, "CursorType");
+    Fayde.CursorTypeMappings = {
+        Default: "",
+        Hand: "pointer",
+        IBeam: "text",
+        Wait: "wait",
+        SizeNESW: "ne-resize",
+        SizeNWSE: "nw-resize",
+        SizeNS: "n-resize",
+        SizeWE: "w-resize"
+    };
+    (function (HorizontalAlignment) {
+        HorizontalAlignment[HorizontalAlignment["Left"] = 0] = "Left";
+        HorizontalAlignment[HorizontalAlignment["Center"] = 1] = "Center";
+        HorizontalAlignment[HorizontalAlignment["Right"] = 2] = "Right";
+        HorizontalAlignment[HorizontalAlignment["Stretch"] = 3] = "Stretch";
+    })(Fayde.HorizontalAlignment || (Fayde.HorizontalAlignment = {}));
+    var HorizontalAlignment = Fayde.HorizontalAlignment;
+    Fayde.CoreLibrary.addEnum(HorizontalAlignment, "HorizontalAlignment");
+    (function (VerticalAlignment) {
+        VerticalAlignment[VerticalAlignment["Top"] = 0] = "Top";
+        VerticalAlignment[VerticalAlignment["Center"] = 1] = "Center";
+        VerticalAlignment[VerticalAlignment["Bottom"] = 2] = "Bottom";
+        VerticalAlignment[VerticalAlignment["Stretch"] = 3] = "Stretch";
+    })(Fayde.VerticalAlignment || (Fayde.VerticalAlignment = {}));
+    var VerticalAlignment = Fayde.VerticalAlignment;
+    Fayde.CoreLibrary.addEnum(VerticalAlignment, "VerticalAlignment");
+    (function (FlowDirection) {
+        FlowDirection[FlowDirection["LeftToRight"] = 0] = "LeftToRight";
+        FlowDirection[FlowDirection["RightToLeft"] = 1] = "RightToLeft";
+    })(Fayde.FlowDirection || (Fayde.FlowDirection = {}));
+    var FlowDirection = Fayde.FlowDirection;
+    Fayde.CoreLibrary.addEnum(FlowDirection, "FlowDirection");
+    (function (FontWeight) {
+        FontWeight[FontWeight["Thin"] = 100] = "Thin";
+        FontWeight[FontWeight["ExtraLight"] = 200] = "ExtraLight";
+        FontWeight[FontWeight["Light"] = 300] = "Light";
+        FontWeight[FontWeight["Normal"] = 400] = "Normal";
+        FontWeight[FontWeight["Medium"] = 500] = "Medium";
+        FontWeight[FontWeight["SemiBold"] = 600] = "SemiBold";
+        FontWeight[FontWeight["Bold"] = 700] = "Bold";
+        FontWeight[FontWeight["ExtraBold"] = 800] = "ExtraBold";
+        FontWeight[FontWeight["Black"] = 900] = "Black";
+        FontWeight[FontWeight["ExtraBlack"] = 950] = "ExtraBlack";
+    })(Fayde.FontWeight || (Fayde.FontWeight = {}));
+    var FontWeight = Fayde.FontWeight;
+    Fayde.CoreLibrary.addEnum(FontWeight, "FontWeight");
+    (function (TextAlignment) {
+        TextAlignment[TextAlignment["Left"] = 0] = "Left";
+        TextAlignment[TextAlignment["Center"] = 1] = "Center";
+        TextAlignment[TextAlignment["Right"] = 2] = "Right";
+        TextAlignment[TextAlignment["Justify"] = 3] = "Justify";
+    })(Fayde.TextAlignment || (Fayde.TextAlignment = {}));
+    var TextAlignment = Fayde.TextAlignment;
+    Fayde.CoreLibrary.addEnum(TextAlignment, "TextAlignment");
+    (function (TextDecorations) {
+        TextDecorations[TextDecorations["None"] = 0] = "None";
+        TextDecorations[TextDecorations["Underline"] = 1] = "Underline";
+    })(Fayde.TextDecorations || (Fayde.TextDecorations = {}));
+    var TextDecorations = Fayde.TextDecorations;
+    Fayde.CoreLibrary.addEnum(TextDecorations, "TextDecorations");
+    (function (LineStackingStrategy) {
+        LineStackingStrategy[LineStackingStrategy["MaxHeight"] = 0] = "MaxHeight";
+        LineStackingStrategy[LineStackingStrategy["BlockLineHeight"] = 1] = "BlockLineHeight";
+    })(Fayde.LineStackingStrategy || (Fayde.LineStackingStrategy = {}));
+    var LineStackingStrategy = Fayde.LineStackingStrategy;
+    Fayde.CoreLibrary.addEnum(LineStackingStrategy, "LineStackingStrategy");
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
@@ -2929,566 +2689,6 @@ var Fayde;
         Fayde.UIReaction(FrameworkElement.VerticalAlignmentProperty, minerva.core.reactTo.verticalAlignment, false);
     })(reactions || (reactions = {}));
 })(Fayde || (Fayde = {}));
-/// <reference path="DataTemplate.ts" />
-var Fayde;
-(function (Fayde) {
-    var HierarchicalDataTemplate = (function (_super) {
-        __extends(HierarchicalDataTemplate, _super);
-        function HierarchicalDataTemplate() {
-            _super.apply(this, arguments);
-        }
-        HierarchicalDataTemplate.ItemsSourceProperty = DependencyProperty.Register("ItemsSource", function () { return nullstone.IEnumerable_; }, HierarchicalDataTemplate);
-        HierarchicalDataTemplate.ItemTemplateProperty = DependencyProperty.Register("ItemTemplate", function () { return Fayde.DataTemplate; }, HierarchicalDataTemplate);
-        HierarchicalDataTemplate.ItemContainerStyleProperty = DependencyProperty.Register("ItemContainerStyle", function () { return Fayde.Style; }, HierarchicalDataTemplate);
-        return HierarchicalDataTemplate;
-    })(Fayde.DataTemplate);
-    Fayde.HierarchicalDataTemplate = HierarchicalDataTemplate;
-    Fayde.CoreLibrary.add(HierarchicalDataTemplate);
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var LayoutInformation = (function () {
-        function LayoutInformation() {
-        }
-        LayoutInformation.GetLayoutClip = function (uie) {
-            var rect = new minerva.Rect();
-            minerva.Rect.copyTo(uie.XamlNode.LayoutUpdater.assets.layoutClip, rect);
-            var geom = new Fayde.Media.RectangleGeometry();
-            geom.Rect = rect;
-            return geom;
-        };
-        LayoutInformation.GetLayoutSlot = function (uie) {
-            var rect = new minerva.Rect();
-            minerva.Rect.copyTo(uie.XamlNode.LayoutUpdater.assets.layoutSlot, rect);
-            return rect;
-        };
-        return LayoutInformation;
-    })();
-    Fayde.LayoutInformation = LayoutInformation;
-    Fayde.CoreLibrary.add(LayoutInformation);
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var NameScope = (function () {
-        function NameScope(isRoot) {
-            this.IsRoot = false;
-            this.XNodes = {};
-            if (isRoot)
-                this.IsRoot = isRoot;
-        }
-        NameScope.prototype.FindName = function (name) {
-            return this.XNodes[name];
-        };
-        NameScope.prototype.RegisterName = function (name, xnode) {
-            var existing = this.XNodes[name];
-            if (existing && existing !== xnode)
-                throw new InvalidOperationException("Name is already registered.");
-            this.XNodes[name] = xnode;
-        };
-        NameScope.prototype.UnregisterName = function (name) {
-            this.XNodes[name] = undefined;
-        };
-        NameScope.prototype.Absorb = function (otherNs) {
-            var on = otherNs.XNodes;
-            for (var name in on) {
-                this.RegisterName(name, on[name]);
-            }
-        };
-        return NameScope;
-    })();
-    Fayde.NameScope = NameScope;
-})(Fayde || (Fayde = {}));
-/// <reference path="XamlObject.ts" />
-var Fayde;
-(function (Fayde) {
-    var XamlObjectCollection = (function (_super) {
-        __extends(XamlObjectCollection, _super);
-        function XamlObjectCollection() {
-            _super.apply(this, arguments);
-            this._ht = [];
-        }
-        XamlObjectCollection.prototype.AttachTo = function (xobj) {
-            var error = new BError();
-            if (!this.XamlNode.AttachTo(xobj.XamlNode, error))
-                error.ThrowException();
-        };
-        Object.defineProperty(XamlObjectCollection.prototype, "Count", {
-            get: function () {
-                return this._ht.length;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        XamlObjectCollection.prototype.GetRange = function (startIndex, endIndex) {
-            return this._ht.slice(startIndex, endIndex);
-        };
-        XamlObjectCollection.prototype.GetValueAt = function (index) {
-            return this._ht[index];
-        };
-        XamlObjectCollection.prototype.SetValueAt = function (index, value) {
-            if (!this.CanAdd(value))
-                return false;
-            if (index < 0 || index >= this._ht.length)
-                return false;
-            var removed = this._ht[index];
-            var added = value;
-            var error = new BError();
-            if (this.AddingToCollection(added, error)) {
-                this._ht[index] = added;
-                this.RemovedFromCollection(removed, true);
-                this._RaiseItemReplaced(removed, added, index);
-                return true;
-            }
-            return false;
-        };
-        XamlObjectCollection.prototype.Add = function (value) {
-            var rv = this.Insert(this._ht.length, value);
-            return rv ? this._ht.length - 1 : -1;
-        };
-        XamlObjectCollection.prototype.Insert = function (index, value) {
-            if (!this.CanAdd(value))
-                return false;
-            if (index < 0)
-                return false;
-            var count = this._ht.length;
-            if (index > count)
-                index = count;
-            var error = new BError();
-            if (this.AddingToCollection(value, error)) {
-                this._ht.splice(index, 0, value);
-                this._RaiseItemAdded(value, index);
-                return true;
-            }
-            if (error.Message)
-                throw new Exception(error.Message);
-            return false;
-        };
-        XamlObjectCollection.prototype.Remove = function (value) {
-            var index = this.IndexOf(value);
-            if (index === -1)
-                return false;
-            return this.RemoveAt(index);
-        };
-        XamlObjectCollection.prototype.RemoveAt = function (index) {
-            if (index < 0 || index >= this._ht.length)
-                return false;
-            var value = this._ht[index];
-            this._ht.splice(index, 1);
-            this.RemovedFromCollection(value, true);
-            this._RaiseItemRemoved(value, index);
-            return true;
-        };
-        XamlObjectCollection.prototype.Clear = function () {
-            var old = this._ht;
-            this._ht = [];
-            var len = old.length;
-            for (var i = 0; i < len; i++) {
-                this.RemovedFromCollection(old[i], true);
-            }
-            this._RaiseCleared(old);
-            return true;
-        };
-        XamlObjectCollection.prototype.IndexOf = function (value) {
-            return this._ht.indexOf(value);
-        };
-        XamlObjectCollection.prototype.Contains = function (value) {
-            return this.IndexOf(value) > -1;
-        };
-        XamlObjectCollection.prototype.CanAdd = function (value) {
-            return true;
-        };
-        XamlObjectCollection.prototype.AddingToCollection = function (value, error) {
-            if (value instanceof Fayde.XamlObject)
-                return value.XamlNode.AttachTo(this.XamlNode, error);
-            return true;
-        };
-        XamlObjectCollection.prototype.RemovedFromCollection = function (value, isValueSafe) {
-            if (value instanceof Fayde.XamlObject)
-                value.XamlNode.Detach();
-        };
-        XamlObjectCollection.prototype.getEnumerator = function (reverse) {
-            return nullstone.IEnumerator_.fromArray(this._ht, reverse);
-        };
-        XamlObjectCollection.prototype.GetNodeEnumerator = function (reverse) {
-            var prev = this.getEnumerator(reverse);
-            return {
-                current: undefined,
-                moveNext: function () {
-                    if (!prev.moveNext()) {
-                        this.current = undefined;
-                        return false;
-                    }
-                    var xobj = prev.current;
-                    this.current = xobj.XamlNode;
-                    return true;
-                }
-            };
-        };
-        XamlObjectCollection.prototype._RaiseItemAdded = function (value, index) {
-        };
-        XamlObjectCollection.prototype._RaiseItemRemoved = function (value, index) {
-        };
-        XamlObjectCollection.prototype._RaiseItemReplaced = function (removed, added, index) {
-        };
-        XamlObjectCollection.prototype._RaiseCleared = function (old) {
-        };
-        XamlObjectCollection.prototype.CloneCore = function (source) {
-            for (var en = source.getEnumerator(); en.moveNext();) {
-                this.Add(Fayde.Clone(en.current));
-            }
-        };
-        XamlObjectCollection.prototype.ToArray = function () {
-            return this._ht.slice(0);
-        };
-        return XamlObjectCollection;
-    })(Fayde.XamlObject);
-    Fayde.XamlObjectCollection = XamlObjectCollection;
-    nullstone.ICollection_.mark(XamlObjectCollection);
-})(Fayde || (Fayde = {}));
-/// <reference path="DependencyObject.ts" />
-/// <reference path="XamlObjectCollection.ts" />
-var Fayde;
-(function (Fayde) {
-    var ResourceDictionaryCollection = (function (_super) {
-        __extends(ResourceDictionaryCollection, _super);
-        function ResourceDictionaryCollection() {
-            _super.apply(this, arguments);
-        }
-        ResourceDictionaryCollection.prototype.Get = function (key) {
-            for (var en = this.getEnumerator(); en.moveNext();) {
-                var cur = en.current.Get(key);
-                if (cur !== undefined)
-                    return cur;
-            }
-            return undefined;
-        };
-        ResourceDictionaryCollection.prototype.AddingToCollection = function (value, error) {
-            if (!_super.prototype.AddingToCollection.call(this, value, error))
-                return false;
-            return this._AssertNoCycles(value, value.XamlNode.ParentNode, error);
-        };
-        ResourceDictionaryCollection.prototype._AssertNoCycles = function (subtreeRoot, firstAncestorNode, error) {
-            var curNode = firstAncestorNode;
-            while (curNode) {
-                var rd = curNode.XObject;
-                if (rd instanceof ResourceDictionary) {
-                    var cycleFound = false;
-                    if (rd === subtreeRoot)
-                        cycleFound = true;
-                    else if (rd.Source && nullstone.equals(rd.Source, subtreeRoot.Source))
-                        cycleFound = true;
-                    if (cycleFound) {
-                        error.Message = "Cycle found in resource dictionaries.";
-                        error.Number = BError.InvalidOperation;
-                        return false;
-                    }
-                }
-                curNode = curNode.ParentNode;
-            }
-            for (var en = subtreeRoot.MergedDictionaries.getEnumerator(); en.moveNext();) {
-                if (!this._AssertNoCycles(en.current, firstAncestorNode, error))
-                    return false;
-            }
-            return true;
-        };
-        return ResourceDictionaryCollection;
-    })(Fayde.XamlObjectCollection);
-    Fayde.ResourceDictionaryCollection = ResourceDictionaryCollection;
-    Fayde.CoreLibrary.add(ResourceDictionaryCollection);
-    var ResourceDictionary = (function (_super) {
-        __extends(ResourceDictionary, _super);
-        function ResourceDictionary() {
-            _super.apply(this, arguments);
-            this._Keys = [];
-            this._Values = [];
-            this._IsSourceLoaded = false;
-            this._SourceBacking = null;
-        }
-        Object.defineProperty(ResourceDictionary.prototype, "MergedDictionaries", {
-            get: function () {
-                var md = this._MergedDictionaries;
-                if (!md) {
-                    md = this._MergedDictionaries = new ResourceDictionaryCollection();
-                    md.AttachTo(this);
-                }
-                return md;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(ResourceDictionary.prototype, "Count", {
-            get: function () {
-                return this._Values.length;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        ResourceDictionary.prototype.AttachTo = function (xobj) {
-            var error = new BError();
-            if (!this.XamlNode.AttachTo(xobj.XamlNode, error))
-                error.ThrowException();
-        };
-        ResourceDictionary.prototype.Contains = function (key) {
-            return this._Keys.indexOf(key) > -1;
-        };
-        ResourceDictionary.prototype.Get = function (key) {
-            if (!!this.Source) {
-                return this._GetFromSource(key);
-            }
-            var index = this._Keys.indexOf(key);
-            if (index > -1)
-                return this._Values[index];
-            var md = this._MergedDictionaries;
-            if (md)
-                return md.Get(key);
-            return undefined;
-        };
-        ResourceDictionary.prototype.Set = function (key, value) {
-            if (key === undefined)
-                return false;
-            if (value === undefined)
-                return this.Remove(key);
-            var index = this._Keys.indexOf(key);
-            var error = new BError();
-            if (value instanceof Fayde.XamlObject && !value.XamlNode.AttachTo(this.XamlNode, error)) {
-                if (error.Message)
-                    throw new Exception(error.Message);
-                return false;
-            }
-            if (index < 0) {
-                this._Keys.push(key);
-                this._Values.push(value);
-            }
-            else {
-                var oldValue = this._Values[index];
-                this._Keys[index] = key;
-                this._Values[index] = value;
-                if (oldValue instanceof Fayde.XamlObject)
-                    oldValue.XamlNode.Detach();
-            }
-            return true;
-        };
-        ResourceDictionary.prototype.Remove = function (key) {
-            var index = this._Keys.indexOf(key);
-            if (index < 0)
-                return false;
-            this._Keys.splice(index, 1);
-            var oldvalue = this._Values.splice(index, 1)[0];
-            if (oldvalue instanceof Fayde.XamlObject)
-                oldvalue.XamlNode.Detach();
-        };
-        ResourceDictionary.prototype.getEnumerator = function (reverse) {
-            return nullstone.IEnumerator_.fromArray(this._Values, reverse);
-        };
-        ResourceDictionary.prototype.GetNodeEnumerator = function (reverse) {
-            var prev = this.getEnumerator(reverse);
-            return {
-                current: undefined,
-                moveNext: function () {
-                    if (prev.moveNext()) {
-                        this.current = undefined;
-                        return false;
-                    }
-                    var xobj = prev.current;
-                    this.current = xobj.XamlNode;
-                    return true;
-                }
-            };
-        };
-        ResourceDictionary.prototype._GetFromSource = function (key) {
-            if (!this._IsSourceLoaded) {
-                this._SourceBacking = Fayde.Markup.Load(this.App, nullstone.markup.xaml.XamlMarkup.create(this.Source));
-                this._IsSourceLoaded = true;
-            }
-            return this._SourceBacking.Get(key);
-        };
-        return ResourceDictionary;
-    })(Fayde.XamlObject);
-    Fayde.ResourceDictionary = ResourceDictionary;
-    Fayde.CoreLibrary.add(ResourceDictionary);
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var RoutedEvent = (function (_super) {
-        __extends(RoutedEvent, _super);
-        function RoutedEvent() {
-            _super.apply(this, arguments);
-        }
-        return RoutedEvent;
-    })(nullstone.Event);
-    Fayde.RoutedEvent = RoutedEvent;
-    Fayde.CoreLibrary.add(RoutedEvent);
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var RoutedEventArgs = (function () {
-        function RoutedEventArgs() {
-            this.Handled = false;
-            this.Source = null;
-            this.OriginalSource = null;
-        }
-        return RoutedEventArgs;
-    })();
-    Fayde.RoutedEventArgs = RoutedEventArgs;
-    Fayde.CoreLibrary.add(RoutedEventArgs);
-})(Fayde || (Fayde = {}));
-/// <reference path="RoutedEvent.ts" />
-/// <reference path="RoutedEventArgs.ts" />
-var Fayde;
-(function (Fayde) {
-    var RoutedPropertyChangedEvent = (function (_super) {
-        __extends(RoutedPropertyChangedEvent, _super);
-        function RoutedPropertyChangedEvent() {
-            _super.apply(this, arguments);
-        }
-        return RoutedPropertyChangedEvent;
-    })(Fayde.RoutedEvent);
-    Fayde.RoutedPropertyChangedEvent = RoutedPropertyChangedEvent;
-    Fayde.CoreLibrary.add(RoutedPropertyChangedEvent);
-    var RoutedPropertyChangedEventArgs = (function (_super) {
-        __extends(RoutedPropertyChangedEventArgs, _super);
-        function RoutedPropertyChangedEventArgs(oldValue, newValue) {
-            _super.call(this);
-            Object.defineProperty(this, "OldValue", { value: oldValue, writable: false });
-            Object.defineProperty(this, "NewValue", { value: newValue, writable: false });
-        }
-        return RoutedPropertyChangedEventArgs;
-    })(Fayde.RoutedEventArgs);
-    Fayde.RoutedPropertyChangedEventArgs = RoutedPropertyChangedEventArgs;
-    Fayde.CoreLibrary.add(RoutedPropertyChangedEventArgs);
-})(Fayde || (Fayde = {}));
-/// <reference path="RoutedEvent.ts" />
-/// <reference path="RoutedEventArgs.ts" />
-var Fayde;
-(function (Fayde) {
-    var RoutedPropertyChangingEvent = (function (_super) {
-        __extends(RoutedPropertyChangingEvent, _super);
-        function RoutedPropertyChangingEvent() {
-            _super.apply(this, arguments);
-        }
-        return RoutedPropertyChangingEvent;
-    })(Fayde.RoutedEvent);
-    Fayde.RoutedPropertyChangingEvent = RoutedPropertyChangingEvent;
-    Fayde.CoreLibrary.add(RoutedPropertyChangingEvent);
-    var RoutedPropertyChangingEventArgs = (function (_super) {
-        __extends(RoutedPropertyChangingEventArgs, _super);
-        function RoutedPropertyChangingEventArgs(propd, oldValue, newValue, isCancelable) {
-            _super.call(this);
-            this._Cancel = false;
-            this.InCoercion = false;
-            this.Property = propd;
-            this.OldValue = oldValue;
-            this.NewValue = newValue;
-            this._IsCancelable = isCancelable;
-        }
-        Object.defineProperty(RoutedPropertyChangingEventArgs.prototype, "IsCancellable", {
-            get: function () { return this._IsCancelable; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RoutedPropertyChangingEventArgs.prototype, "Cancel", {
-            get: function () { return this._Cancel; },
-            set: function (value) {
-                if (this._IsCancelable)
-                    this._Cancel = value;
-                else if (value)
-                    throw new InvalidOperationException("Not cancelable.");
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return RoutedPropertyChangingEventArgs;
-    })(Fayde.RoutedEventArgs);
-    Fayde.RoutedPropertyChangingEventArgs = RoutedPropertyChangingEventArgs;
-    Fayde.CoreLibrary.add(RoutedPropertyChangingEventArgs);
-})(Fayde || (Fayde = {}));
-/// <reference path="DependencyObject.ts" />
-/// <reference path="XamlObjectCollection.ts" />
-var Fayde;
-(function (Fayde) {
-    var SetterCollection = (function (_super) {
-        __extends(SetterCollection, _super);
-        function SetterCollection() {
-            _super.apply(this, arguments);
-            this._IsSealed = false;
-        }
-        SetterCollection.prototype.Seal = function () {
-            if (this._IsSealed)
-                return;
-            for (var en = this.getEnumerator(); en.moveNext();) {
-                en.current.Seal();
-            }
-            this._IsSealed = true;
-        };
-        SetterCollection.prototype.AddingToCollection = function (value, error) {
-            if (!value || !this._ValidateSetter(value, error))
-                return false;
-            return _super.prototype.AddingToCollection.call(this, value, error);
-        };
-        SetterCollection.prototype._ValidateSetter = function (setter, error) {
-            if (!(setter.Property instanceof DependencyProperty)) {
-                error.Message = "Setter.Property must be a DependencyProperty.";
-                return false;
-            }
-            if (setter.Value === undefined) {
-                if (!setter._HasDeferredValueExpression(Setter.ValueProperty)) {
-                    error.Message = "Setter must have a Value.";
-                    return false;
-                }
-            }
-            if (this._IsSealed) {
-                error.Message = "Setter is sealed.";
-                return false;
-            }
-            return true;
-        };
-        return SetterCollection;
-    })(Fayde.XamlObjectCollection);
-    Fayde.SetterCollection = SetterCollection;
-    Fayde.CoreLibrary.add(SetterCollection);
-    var Setter = (function (_super) {
-        __extends(Setter, _super);
-        function Setter() {
-            _super.apply(this, arguments);
-            this._IsSealed = false;
-        }
-        Setter.prototype.Seal = function () {
-            var propd = this.Property;
-            var val = this.Value;
-            var propTargetType = propd.GetTargetType();
-            this.SetCurrentValue(Setter.ConvertedValueProperty, nullstone.convertAnyToType(val, propTargetType));
-            this._IsSealed = true;
-        };
-        Setter.Compare = function (setter1, setter2) {
-            var a = setter1.Property;
-            var b = setter2.Property;
-            return (a === b) ? 0 : ((a._ID > b._ID) ? 1 : -1);
-        };
-        Setter.PropertyProperty = DependencyProperty.Register("Property", function () { return DependencyProperty; }, Setter);
-        Setter.ValueProperty = DependencyProperty.Register("Value", function () { return Object; }, Setter);
-        Setter.ConvertedValueProperty = DependencyProperty.RegisterReadOnly("ConvertedValue", function () { return Object; }, Setter);
-        return Setter;
-    })(Fayde.DependencyObject);
-    Fayde.Setter = Setter;
-    Fayde.CoreLibrary.add(Setter);
-})(Fayde || (Fayde = {}));
-/// <reference path="RoutedEventArgs.ts" />
-var Fayde;
-(function (Fayde) {
-    var SizeChangedEventArgs = (function (_super) {
-        __extends(SizeChangedEventArgs, _super);
-        function SizeChangedEventArgs(previousSize, newSize) {
-            _super.call(this);
-            Object.defineProperty(this, "PreviousSize", { value: new minerva.Size(), writable: false });
-            Object.defineProperty(this, "NewSize", { value: new minerva.Size(), writable: false });
-            minerva.Size.copyTo(previousSize, this.PreviousSize);
-            minerva.Size.copyTo(newSize, this.NewSize);
-        }
-        return SizeChangedEventArgs;
-    })(Fayde.RoutedEventArgs);
-    Fayde.SizeChangedEventArgs = SizeChangedEventArgs;
-    Fayde.CoreLibrary.add(SizeChangedEventArgs);
-})(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
     var Markup;
@@ -3532,695 +2732,6 @@ var Fayde;
             return tca;
         })();
     })(Markup = Fayde.Markup || (Fayde.Markup = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="DependencyObject" />
-/// <reference path="../Markup/ContentAnnotation" />
-var Fayde;
-(function (Fayde) {
-    var Style = (function (_super) {
-        __extends(Style, _super);
-        function Style() {
-            _super.call(this);
-            this._IsSealed = false;
-            var coll = Style.SettersProperty.Initialize(this);
-            coll.AttachTo(this);
-        }
-        Style.prototype.Seal = function () {
-            if (this._IsSealed)
-                return;
-            this.Setters.Seal();
-            this._IsSealed = true;
-            var base = this.BasedOn;
-            if (base)
-                base.Seal();
-        };
-        Style.prototype.Validate = function (instance, error) {
-            var targetType = this.TargetType;
-            var parentType = instance.constructor;
-            if (this._IsSealed) {
-                if (!(instance instanceof targetType)) {
-                    error.Number = BError.XamlParse;
-                    error.Message = "Style.TargetType (" + targetType.name + ") is not a subclass of (" + parentType.name + ")";
-                    return false;
-                }
-                return true;
-            }
-            var cycles = [];
-            var root = this;
-            while (root) {
-                if (cycles.indexOf(root) > -1) {
-                    error.Number = BError.InvalidOperation;
-                    error.Message = "Circular reference in Style.BasedOn";
-                    return false;
-                }
-                cycles.push(root);
-                root = root.BasedOn;
-            }
-            cycles = null;
-            root = this;
-            var targetType;
-            while (root) {
-                targetType = root.TargetType;
-                if (root === this) {
-                    if (!targetType) {
-                        error.Number = BError.InvalidOperation;
-                        error.Message = "TargetType cannot be null";
-                        return false;
-                    }
-                    else if (!nullstone.doesInheritFrom(parentType, targetType)) {
-                        error.Number = BError.XamlParse;
-                        error.Message = "Style.TargetType (" + targetType.name + ") is not a subclass of (" + parentType.name + ")";
-                        return false;
-                    }
-                }
-                else if (!targetType || !nullstone.doesInheritFrom(parentType, targetType)) {
-                    error.Number = BError.InvalidOperation;
-                    error.Message = "Style.TargetType (" + (targetType ? targetType.name : "<Not Specified>") + ") is not a subclass of (" + parentType.name + ")";
-                    return false;
-                }
-                parentType = targetType;
-                root = root.BasedOn;
-            }
-            this.Seal();
-            return true;
-        };
-        Style.SettersProperty = DependencyProperty.RegisterImmutable("Setters", function () { return Fayde.SetterCollection; }, Style);
-        Style.BasedOnProperty = DependencyProperty.Register("BasedOn", function () { return Style; }, Style);
-        Style.TargetTypeProperty = DependencyProperty.Register("TargetType", function () { return Fayde.IType_; }, Style);
-        return Style;
-    })(Fayde.DependencyObject);
-    Fayde.Style = Style;
-    Fayde.CoreLibrary.add(Style);
-    Fayde.Markup.Content(Style, Style.SettersProperty);
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var TemplateBinding = (function () {
-        function TemplateBinding() {
-        }
-        TemplateBinding.prototype.init = function (val) {
-            this.SourceProperty = val;
-        };
-        TemplateBinding.prototype.transmute = function (os) {
-            return new Fayde.TemplateBindingExpression(this.SourceProperty);
-        };
-        return TemplateBinding;
-    })();
-    Fayde.TemplateBinding = TemplateBinding;
-    Fayde.CoreLibrary.add(TemplateBinding);
-})(Fayde || (Fayde = {}));
-/// <reference path="DependencyObject.ts" />
-/// <reference path="XamlObjectCollection.ts" />
-var Fayde;
-(function (Fayde) {
-    var TriggerAction = (function (_super) {
-        __extends(TriggerAction, _super);
-        function TriggerAction() {
-            _super.apply(this, arguments);
-        }
-        TriggerAction.prototype.Fire = function () { };
-        return TriggerAction;
-    })(Fayde.DependencyObject);
-    Fayde.TriggerAction = TriggerAction;
-    Fayde.CoreLibrary.add(TriggerAction);
-    var TriggerActionCollection = (function (_super) {
-        __extends(TriggerActionCollection, _super);
-        function TriggerActionCollection() {
-            _super.apply(this, arguments);
-        }
-        TriggerActionCollection.prototype.Fire = function () {
-            var enumerator = this.getEnumerator();
-            while (enumerator.moveNext()) {
-                enumerator.current.Fire();
-            }
-        };
-        return TriggerActionCollection;
-    })(Fayde.XamlObjectCollection);
-    Fayde.TriggerActionCollection = TriggerActionCollection;
-    Fayde.CoreLibrary.add(TriggerActionCollection);
-    var TriggerBase = (function (_super) {
-        __extends(TriggerBase, _super);
-        function TriggerBase() {
-            _super.apply(this, arguments);
-        }
-        TriggerBase.prototype.Attach = function (target) { };
-        TriggerBase.prototype.Detach = function (target) { };
-        return TriggerBase;
-    })(Fayde.DependencyObject);
-    Fayde.TriggerBase = TriggerBase;
-    Fayde.CoreLibrary.add(TriggerBase);
-    var EventTrigger = (function (_super) {
-        __extends(EventTrigger, _super);
-        function EventTrigger() {
-            _super.call(this);
-            this._IsAttached = false;
-            var coll = EventTrigger.ActionsProperty.Initialize(this);
-            coll.AttachTo(this);
-        }
-        EventTrigger.prototype.Attach = function (target) {
-            if (this._IsAttached)
-                return;
-            var evt = this._ParseEventName(target);
-            if (evt) {
-                this._IsAttached = true;
-                evt.on(this._FireActions, this);
-                return;
-            }
-            console.warn("Could not attach to RoutedEvent: " + this.RoutedEvent);
-        };
-        EventTrigger.prototype.Detach = function (target) {
-            var evt = this._ParseEventName(target);
-            if (evt)
-                evt.off(this._FireActions, this);
-            this._IsAttached = false;
-        };
-        EventTrigger.prototype._FireActions = function (sender, e) {
-            var actions = this.Actions;
-            if (actions)
-                actions.Fire();
-        };
-        EventTrigger.prototype._ParseEventName = function (target) {
-            var routedEventName = this.RoutedEvent;
-            var tokens = routedEventName.split(".");
-            if (tokens.length === 1)
-                routedEventName = tokens[0];
-            else if (tokens.length === 2)
-                routedEventName = tokens[1];
-            else
-                return undefined;
-            var evt = target[routedEventName];
-            if (evt instanceof Fayde.RoutedEvent)
-                return evt;
-            return undefined;
-        };
-        EventTrigger.ActionsProperty = DependencyProperty.RegisterImmutable("Actions", function () { return TriggerActionCollection; }, EventTrigger);
-        EventTrigger.RoutedEventProperty = DependencyProperty.Register("RoutedEvent", function () { return String; }, EventTrigger);
-        return EventTrigger;
-    })(TriggerBase);
-    Fayde.EventTrigger = EventTrigger;
-    Fayde.CoreLibrary.add(EventTrigger);
-    Fayde.Markup.Content(EventTrigger, EventTrigger.ActionsProperty);
-    var TriggerCollection = (function (_super) {
-        __extends(TriggerCollection, _super);
-        function TriggerCollection() {
-            _super.apply(this, arguments);
-        }
-        Object.defineProperty(TriggerCollection.prototype, "ParentXamlObject", {
-            get: function () {
-                var parentNode = this.XamlNode.ParentNode;
-                if (!parentNode)
-                    return undefined;
-                return parentNode.XObject;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        TriggerCollection.prototype.AddingToCollection = function (value, error) {
-            if (!_super.prototype.AddingToCollection.call(this, value, error))
-                return false;
-            var parent = this.ParentXamlObject;
-            if (parent)
-                value.Attach(parent);
-            return true;
-        };
-        TriggerCollection.prototype.RemovedFromCollection = function (value, isValueSafe) {
-            _super.prototype.RemovedFromCollection.call(this, value, isValueSafe);
-            var parent = this.ParentXamlObject;
-            if (parent)
-                value.Detach(parent);
-        };
-        TriggerCollection.prototype.AttachTarget = function (target) {
-            var enumerator = this.getEnumerator();
-            while (enumerator.moveNext()) {
-                enumerator.current.Attach(target);
-            }
-        };
-        TriggerCollection.prototype.DetachTarget = function (target) {
-            var enumerator = this.getEnumerator();
-            while (enumerator.moveNext()) {
-                enumerator.current.Detach(target);
-            }
-        };
-        return TriggerCollection;
-    })(Fayde.XamlObjectCollection);
-    Fayde.TriggerCollection = TriggerCollection;
-    Fayde.CoreLibrary.add(TriggerCollection);
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var VisualTreeEnum = (function () {
-        function VisualTreeEnum() {
-        }
-        VisualTreeEnum.GetAncestors = function (uie) {
-            return new AncestorsEnumerable(uie);
-        };
-        return VisualTreeEnum;
-    })();
-    Fayde.VisualTreeEnum = VisualTreeEnum;
-    var AncestorsEnumerable = (function () {
-        function AncestorsEnumerable(uie) {
-            this.uie = uie;
-        }
-        AncestorsEnumerable.prototype.getEnumerator = function () {
-            var curNode = this.uie ? this.uie.XamlNode : null;
-            var e = {
-                current: undefined,
-                moveNext: function () {
-                    curNode = curNode ? curNode.VisualParentNode : undefined;
-                    e.current = curNode ? curNode.XObject : undefined;
-                    return e.current !== undefined;
-                }
-            };
-            return e;
-        };
-        return AncestorsEnumerable;
-    })();
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var VisualTreeHelper = (function () {
-        function VisualTreeHelper() {
-        }
-        VisualTreeHelper.GetParent = function (d) {
-            if (!(d instanceof Fayde.FrameworkElement))
-                throw new InvalidOperationException("Reference is not a valid visual DependencyObject");
-            var parentNode = d.XamlNode.VisualParentNode;
-            if (parentNode)
-                return parentNode.XObject;
-        };
-        VisualTreeHelper.GetParentOfType = function (d, type) {
-            if (!(d instanceof Fayde.FrameworkElement))
-                throw new InvalidOperationException("Reference is not a valid visual DependencyObject");
-            var curNode = d.XamlNode;
-            while ((curNode = curNode.VisualParentNode)) {
-                if (curNode.XObject instanceof type)
-                    return curNode.XObject;
-            }
-            return undefined;
-        };
-        VisualTreeHelper.GetRoot = function (d) {
-            if (!(d instanceof Fayde.FrameworkElement))
-                throw new InvalidOperationException("Reference is not a valid visual DependencyObject");
-            var rootNode = d.XamlNode.GetVisualRoot();
-            if (rootNode)
-                return rootNode.XObject;
-        };
-        VisualTreeHelper.GetChild = function (d, childIndex) {
-            if (!(d instanceof Fayde.FrameworkElement))
-                throw new InvalidOperationException("Reference is not a valid visual DependencyObject");
-            var feNode = d.XamlNode;
-            var subtreeNode = feNode.SubtreeNode;
-            if (!subtreeNode)
-                throw new IndexOutOfRangeException(childIndex);
-            var subtree = subtreeNode.XObject;
-            if (subtree instanceof Fayde.XamlObjectCollection)
-                return subtree.GetValueAt(childIndex);
-            if ((subtree instanceof Fayde.UIElement) && childIndex === 0)
-                return subtree;
-            throw new IndexOutOfRangeException(childIndex);
-        };
-        VisualTreeHelper.GetChildrenCount = function (d) {
-            if (!(d instanceof Fayde.FrameworkElement))
-                throw new InvalidOperationException("Reference is not a valid visual DependencyObject");
-            var feNode = d.XamlNode;
-            var subtreeNode = feNode.SubtreeNode;
-            if (!subtreeNode)
-                return 0;
-            var subtree = subtreeNode.XObject;
-            if (subtreeNode.XObject instanceof Fayde.XamlObjectCollection)
-                return subtree.Count;
-            if (subtree instanceof Fayde.UIElement)
-                return 1;
-            return 0;
-        };
-        VisualTreeHelper.FindElementsInHostCoordinates = function (pos, uie) {
-            return minerva.findElementsInHostSpace(pos, uie.XamlNode.LayoutUpdater)
-                .map(function (upd) { return upd.getAttachedValue("$node").XObject; });
-        };
-        VisualTreeHelper.__Debug = function (ui, func) {
-            var uin;
-            if (ui instanceof Fayde.UIElement) {
-                uin = ui.XamlNode;
-            }
-            else if (ui instanceof Fayde.UINode) {
-                uin = ui;
-            }
-            else if (ui instanceof minerva.core.Updater) {
-                uin = ui.getAttachedValue("$node");
-            }
-            var topNode;
-            if (!uin) {
-                var rv = Fayde.Application.Current.RootVisual;
-                topNode = (rv) ? rv.XamlNode : null;
-            }
-            else {
-                topNode = uin.GetVisualRoot();
-            }
-            if (!topNode)
-                return "[No top node.]";
-            if (!func)
-                func = VisualTreeHelper.__DebugUIElement;
-            return VisualTreeHelper.__DebugTree(topNode, uin, 1, func);
-        };
-        VisualTreeHelper.__DebugTree = function (curNode, matchNode, tabIndex, func) {
-            var str = "";
-            if (curNode === matchNode) {
-                for (var i = 0; i < tabIndex; i++) {
-                    str += ">>>>>>>>";
-                }
-            }
-            else {
-                for (var i = 0; i < tabIndex; i++) {
-                    str += "\t";
-                }
-            }
-            var cur = curNode.XObject;
-            str += cur.constructor.name;
-            var id = cur._ID;
-            if (id)
-                str += "[" + id + "]";
-            var name = curNode.Name;
-            str += " [";
-            var ns = curNode.NameScope;
-            if (!ns)
-                str += "^";
-            else if (ns.IsRoot)
-                str += "+";
-            else
-                str += "-";
-            str += name + "]";
-            if (func)
-                str += func(curNode, tabIndex);
-            str += "\n";
-            var enumerator = curNode.GetVisualTreeEnumerator();
-            if (!enumerator)
-                return str;
-            var childNode;
-            while (enumerator.moveNext()) {
-                childNode = enumerator.current;
-                str += VisualTreeHelper.__DebugTree(childNode, matchNode, tabIndex + 1, func);
-            }
-            return str;
-        };
-        VisualTreeHelper.__DebugUIElement = function (uin, tabIndex) {
-            if (!uin)
-                return "";
-            var uie = uin.XObject;
-            var str = "(";
-            if (uie.Visibility === Fayde.Visibility.Visible)
-                str += "Visible";
-            else
-                str += "Collapsed";
-            var lu = uin.LayoutUpdater;
-            if (lu) {
-                str += " ";
-                var ls = lu.assets.layoutSlot;
-                str += "(" + ls.x + "," + ls.y + ")(" + ls.width + "," + ls.height + ")";
-            }
-            str += ")";
-            var t = uie.TemplateOwner;
-            str += "$TO=" + (t ? t.constructor.name : "(null)");
-            var gridStr = VisualTreeHelper.__DebugGrid(uin, tabIndex);
-            if (gridStr)
-                str += "\n" + gridStr;
-            return str;
-        };
-        VisualTreeHelper.__DebugGrid = function (uin, tabIndex) {
-            var grid;
-            if (uin.XObject instanceof Fayde.Controls.Grid)
-                grid = uin.XObject;
-            if (!grid)
-                return "";
-            var rds = grid.RowDefinitions;
-            var rcount = rds.Count;
-            var cds = grid.ColumnDefinitions;
-            var ccount = cds.Count;
-            var tabs = "";
-            for (var i = 0; i < tabIndex; i++) {
-                tabs += "\t";
-            }
-            var str = "";
-            if (rcount > 0) {
-                str += tabs;
-                str += "  Rows (" + rcount + "):\n";
-                var rowdef;
-                for (var en = rds.getEnumerator(), i = 0; en.moveNext(); i++) {
-                    rowdef = en.current;
-                    str += tabs;
-                    str += "\t[" + i + "] -> " + rowdef.ActualHeight + "\n";
-                }
-            }
-            var enumerator2;
-            if (ccount > 0) {
-                str += tabs;
-                str += "  Columns (" + ccount + "):\n";
-                var coldef;
-                for (var en2 = cds.getEnumerator(), i = 0; en2.moveNext(); i++) {
-                    coldef = en2.current;
-                    str += tabs;
-                    str += "\t[" + i + "] -> " + coldef.ActualWidth + "\n";
-                }
-            }
-            return str;
-        };
-        VisualTreeHelper.__DebugUIElementLayout = function (uin, tabIndex) {
-            if (!uin)
-                return "";
-            return uin.LayoutUpdater._DebugLayout();
-        };
-        VisualTreeHelper.__DebugLayout = function (ui) {
-            return VisualTreeHelper.__Debug(ui, VisualTreeHelper.__DebugUIElementLayout);
-        };
-        VisualTreeHelper.__GetById = function (id) {
-            var rv = Fayde.Application.Current.RootVisual;
-            var topNode = (rv) ? rv.XamlNode : null;
-            if (!topNode)
-                return;
-            var walker = Fayde.DeepTreeWalker(topNode);
-            var curNode;
-            while (curNode = walker.Step()) {
-                if (curNode.XObject._ID === id)
-                    return curNode.XObject;
-            }
-        };
-        return VisualTreeHelper;
-    })();
-    Fayde.VisualTreeHelper = VisualTreeHelper;
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    (function (VisualTreeDirection) {
-        VisualTreeDirection[VisualTreeDirection["Logical"] = 0] = "Logical";
-        VisualTreeDirection[VisualTreeDirection["Reverse"] = 1] = "Reverse";
-        VisualTreeDirection[VisualTreeDirection["ZForward"] = 2] = "ZForward";
-        VisualTreeDirection[VisualTreeDirection["ZReverse"] = 3] = "ZReverse";
-    })(Fayde.VisualTreeDirection || (Fayde.VisualTreeDirection = {}));
-    var VisualTreeDirection = Fayde.VisualTreeDirection;
-    function mergeSetters(arr, dps, style) {
-        var enumerator = style.Setters.getEnumerator(true);
-        var setter;
-        while (enumerator.moveNext()) {
-            setter = enumerator.current;
-            if (!(setter instanceof Fayde.Setter))
-                continue;
-            var propd = setter.Property;
-            if (!propd)
-                continue;
-            if (dps[propd._ID])
-                continue;
-            dps[propd._ID] = setter;
-            arr.push(setter);
-        }
-    }
-    function SingleStyleWalker(style) {
-        var dps = [];
-        var flattenedSetters = [];
-        var cur = style;
-        while (cur) {
-            mergeSetters(flattenedSetters, dps, cur);
-            cur = cur.BasedOn;
-        }
-        flattenedSetters.sort(Fayde.Setter.Compare);
-        return {
-            Step: function () {
-                return flattenedSetters.shift();
-            }
-        };
-    }
-    Fayde.SingleStyleWalker = SingleStyleWalker;
-    function MultipleStylesWalker(styles) {
-        var flattenedSetters = [];
-        if (styles) {
-            var dps = [];
-            var stylesSeen = [];
-            var len = styles.length;
-            for (var i = 0; i < len; i++) {
-                var style = styles[i];
-                while (style) {
-                    if (stylesSeen.indexOf(style) > -1)
-                        continue;
-                    mergeSetters(flattenedSetters, dps, style);
-                    stylesSeen.push(style);
-                    style = style.BasedOn;
-                }
-            }
-            flattenedSetters.sort(Fayde.Setter.Compare);
-        }
-        return {
-            Step: function () {
-                return flattenedSetters.shift();
-            }
-        };
-    }
-    Fayde.MultipleStylesWalker = MultipleStylesWalker;
-    function DeepTreeWalker(topNode, direction) {
-        var last = undefined;
-        var dir = VisualTreeDirection.Logical;
-        var walkList = [topNode];
-        if (direction)
-            dir = direction;
-        return {
-            Step: function () {
-                if (last) {
-                    var enumerator = last.GetVisualTreeEnumerator();
-                    var insertIndex = 0;
-                    while (enumerator.moveNext()) {
-                        walkList.splice(insertIndex, 0, enumerator.current);
-                        insertIndex++;
-                    }
-                }
-                var next = walkList.shift();
-                if (!next) {
-                    last = undefined;
-                    return;
-                }
-                return (last = next);
-            },
-            SkipBranch: function () {
-                last = undefined;
-            }
-        };
-    }
-    Fayde.DeepTreeWalker = DeepTreeWalker;
-    function compare(left, right) {
-        if (!left)
-            return !right ? 0 : -1;
-        if (!right)
-            return 1;
-        var v1 = left.XObject.TabIndex;
-        var v2 = right.XObject.TabIndex;
-        if (v1 == null) {
-            return v2 != null ? -1 : 0;
-        }
-        else if (v2 == null) {
-            return 1;
-        }
-        if (v1 > v2)
-            return 1;
-        return v1 === v2 ? 0 : -1;
-    }
-    function getParentNavigationMode(uin) {
-        while (uin) {
-            if (uin instanceof Fayde.Controls.ControlNode)
-                return uin.XObject.TabNavigation;
-            return Fayde.Input.KeyboardNavigationMode.Local;
-        }
-        return Fayde.Input.KeyboardNavigationMode.Local;
-    }
-    function getActiveNavigationMode(uin) {
-        while (uin) {
-            if (uin instanceof Fayde.Controls.ControlNode)
-                return uin.XObject.TabNavigation;
-            uin = uin.VisualParentNode;
-        }
-        return Fayde.Input.KeyboardNavigationMode.Local;
-    }
-    function walkChildren(root, cur, forwards) {
-        var walker = new TabNavigationWalker(root, cur, forwards);
-        return walker.FocusChild();
-    }
-    var TabNavigationWalker = (function () {
-        function TabNavigationWalker(root, cur, forwards) {
-            this._Root = root;
-            this._Current = cur;
-            this._Forwards = forwards;
-            this._TabSorted = [];
-        }
-        TabNavigationWalker.prototype.FocusChild = function () {
-            var childNode;
-            var childIsControl;
-            var curIndex = -1;
-            var childWalker = DeepTreeWalker(this._Root);
-            while (childNode = childWalker.Step()) {
-                if (childNode === this._Root || !(childNode instanceof Fayde.Controls.ControlNode))
-                    continue;
-                this._TabSorted.push(childNode);
-                childWalker.SkipBranch();
-            }
-            if (this._TabSorted.length > 1) {
-                this._TabSorted.sort(compare);
-                if (!this._Forwards)
-                    this._TabSorted = this._TabSorted.reverse();
-            }
-            var len = this._TabSorted.length;
-            for (var i = 0; i < len; i++) {
-                if (this._TabSorted[i] === this._Current)
-                    curIndex = i;
-            }
-            if (curIndex !== -1 && getActiveNavigationMode(this._Root) === Fayde.Input.KeyboardNavigationMode.Once) {
-                if (!this._Forwards && this._Root instanceof Fayde.Controls.ControlNode)
-                    return this._Root.TabTo();
-                return false;
-            }
-            var len = this._TabSorted.length;
-            if (len > 0) {
-                for (var j = 0; j < len; j++) {
-                    if ((j + curIndex + 1) === len && getActiveNavigationMode(this._Root) !== Fayde.Input.KeyboardNavigationMode.Cycle)
-                        break;
-                    childNode = this._TabSorted[(j + curIndex + 1) % len];
-                    childIsControl = childNode instanceof Fayde.Controls.ControlNode;
-                    if (childIsControl && !childNode.XObject.IsEnabled)
-                        continue;
-                    if (!this._Forwards && walkChildren(childNode))
-                        return true;
-                    if (childIsControl && childNode.TabTo())
-                        return true;
-                    if (this._Forwards && walkChildren(childNode))
-                        return true;
-                }
-            }
-            if (curIndex !== -1 && !this._Forwards) {
-                if (this._Root instanceof Fayde.Controls.ControlNode)
-                    return this._Root.TabTo();
-            }
-            return false;
-        };
-        TabNavigationWalker.Focus = function (uin, forwards) {
-            var focused = false;
-            var cur = uin;
-            var root = uin;
-            if ((root.VisualParentNode && getParentNavigationMode(root.VisualParentNode) === Fayde.Input.KeyboardNavigationMode.Once)
-                || (!forwards && root && root.VisualParentNode)) {
-                while (root = root.VisualParentNode)
-                    if (root instanceof Fayde.Controls.ControlNode || !root.VisualParentNode)
-                        break;
-            }
-            do {
-                focused = focused || walkChildren(root, cur, forwards);
-                if (!focused && getActiveNavigationMode(root) === Fayde.Input.KeyboardNavigationMode.Cycle)
-                    return true;
-                cur = root;
-                root = root.VisualParentNode;
-                while (root && !(root instanceof Fayde.Controls.ControlNode) && root.VisualParentNode)
-                    root = root.VisualParentNode;
-            } while (!focused && root);
-            if (!focused)
-                focused = focused || walkChildren(cur, null, forwards);
-            return focused;
-        };
-        return TabNavigationWalker;
-    })();
-    Fayde.TabNavigationWalker = TabNavigationWalker;
 })(Fayde || (Fayde = {}));
 /// <reference path="../Core/FrameworkElement.ts" />
 /// <reference path="../Markup/ContentAnnotation.ts" />
@@ -5043,6 +3554,153 @@ var Fayde;
         Fayde.CoreLibrary.add(Button);
         Controls.TemplateVisualStates(Button, { GroupName: "CommonStates", Name: "Normal" }, { GroupName: "CommonStates", Name: "MouseOver" }, { GroupName: "CommonStates", Name: "Pressed" }, { GroupName: "CommonStates", Name: "Disabled" }, { GroupName: "FocusStates", Name: "Unfocused" }, { GroupName: "FocusStates", Name: "Focused" });
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
+})(Fayde || (Fayde = {}));
+/// <reference path="XamlObject.ts" />
+var Fayde;
+(function (Fayde) {
+    var XamlObjectCollection = (function (_super) {
+        __extends(XamlObjectCollection, _super);
+        function XamlObjectCollection() {
+            _super.apply(this, arguments);
+            this._ht = [];
+        }
+        XamlObjectCollection.prototype.AttachTo = function (xobj) {
+            var error = new BError();
+            if (!this.XamlNode.AttachTo(xobj.XamlNode, error))
+                error.ThrowException();
+        };
+        Object.defineProperty(XamlObjectCollection.prototype, "Count", {
+            get: function () {
+                return this._ht.length;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        XamlObjectCollection.prototype.GetRange = function (startIndex, endIndex) {
+            return this._ht.slice(startIndex, endIndex);
+        };
+        XamlObjectCollection.prototype.GetValueAt = function (index) {
+            return this._ht[index];
+        };
+        XamlObjectCollection.prototype.SetValueAt = function (index, value) {
+            if (!this.CanAdd(value))
+                return false;
+            if (index < 0 || index >= this._ht.length)
+                return false;
+            var removed = this._ht[index];
+            var added = value;
+            var error = new BError();
+            if (this.AddingToCollection(added, error)) {
+                this._ht[index] = added;
+                this.RemovedFromCollection(removed, true);
+                this._RaiseItemReplaced(removed, added, index);
+                return true;
+            }
+            return false;
+        };
+        XamlObjectCollection.prototype.Add = function (value) {
+            var rv = this.Insert(this._ht.length, value);
+            return rv ? this._ht.length - 1 : -1;
+        };
+        XamlObjectCollection.prototype.Insert = function (index, value) {
+            if (!this.CanAdd(value))
+                return false;
+            if (index < 0)
+                return false;
+            var count = this._ht.length;
+            if (index > count)
+                index = count;
+            var error = new BError();
+            if (this.AddingToCollection(value, error)) {
+                this._ht.splice(index, 0, value);
+                this._RaiseItemAdded(value, index);
+                return true;
+            }
+            if (error.Message)
+                throw new Exception(error.Message);
+            return false;
+        };
+        XamlObjectCollection.prototype.Remove = function (value) {
+            var index = this.IndexOf(value);
+            if (index === -1)
+                return false;
+            return this.RemoveAt(index);
+        };
+        XamlObjectCollection.prototype.RemoveAt = function (index) {
+            if (index < 0 || index >= this._ht.length)
+                return false;
+            var value = this._ht[index];
+            this._ht.splice(index, 1);
+            this.RemovedFromCollection(value, true);
+            this._RaiseItemRemoved(value, index);
+            return true;
+        };
+        XamlObjectCollection.prototype.Clear = function () {
+            var old = this._ht;
+            this._ht = [];
+            var len = old.length;
+            for (var i = 0; i < len; i++) {
+                this.RemovedFromCollection(old[i], true);
+            }
+            this._RaiseCleared(old);
+            return true;
+        };
+        XamlObjectCollection.prototype.IndexOf = function (value) {
+            return this._ht.indexOf(value);
+        };
+        XamlObjectCollection.prototype.Contains = function (value) {
+            return this.IndexOf(value) > -1;
+        };
+        XamlObjectCollection.prototype.CanAdd = function (value) {
+            return true;
+        };
+        XamlObjectCollection.prototype.AddingToCollection = function (value, error) {
+            if (value instanceof Fayde.XamlObject)
+                return value.XamlNode.AttachTo(this.XamlNode, error);
+            return true;
+        };
+        XamlObjectCollection.prototype.RemovedFromCollection = function (value, isValueSafe) {
+            if (value instanceof Fayde.XamlObject)
+                value.XamlNode.Detach();
+        };
+        XamlObjectCollection.prototype.getEnumerator = function (reverse) {
+            return nullstone.IEnumerator_.fromArray(this._ht, reverse);
+        };
+        XamlObjectCollection.prototype.GetNodeEnumerator = function (reverse) {
+            var prev = this.getEnumerator(reverse);
+            return {
+                current: undefined,
+                moveNext: function () {
+                    if (!prev.moveNext()) {
+                        this.current = undefined;
+                        return false;
+                    }
+                    var xobj = prev.current;
+                    this.current = xobj.XamlNode;
+                    return true;
+                }
+            };
+        };
+        XamlObjectCollection.prototype._RaiseItemAdded = function (value, index) {
+        };
+        XamlObjectCollection.prototype._RaiseItemRemoved = function (value, index) {
+        };
+        XamlObjectCollection.prototype._RaiseItemReplaced = function (removed, added, index) {
+        };
+        XamlObjectCollection.prototype._RaiseCleared = function (old) {
+        };
+        XamlObjectCollection.prototype.CloneCore = function (source) {
+            for (var en = source.getEnumerator(); en.moveNext();) {
+                this.Add(Fayde.Clone(en.current));
+            }
+        };
+        XamlObjectCollection.prototype.ToArray = function () {
+            return this._ht.slice(0);
+        };
+        return XamlObjectCollection;
+    })(Fayde.XamlObject);
+    Fayde.XamlObjectCollection = XamlObjectCollection;
+    nullstone.ICollection_.mark(XamlObjectCollection);
 })(Fayde || (Fayde = {}));
 /// <reference path="../Core/FrameworkElement.ts" />
 /// <reference path="../Core/XamlObjectCollection.ts" />
@@ -7736,6 +6394,187 @@ var Fayde;
         Controls.TemplateVisualStates(ComboBoxItem, { GroupName: "CommonStates", Name: "Normal" }, { GroupName: "CommonStates", Name: "MouseOver" }, { GroupName: "FocusStates", Name: "Unfocused" }, { GroupName: "FocusStates", Name: "Focused" }, { GroupName: "SelectionStates", Name: "Unselected" }, { GroupName: "SelectionStates", Name: "Selected" }, { GroupName: "SelectionStates", Name: "SelectedUnfocused" });
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
 })(Fayde || (Fayde = {}));
+/// <reference path="../Core/DependencyObject" />
+var Fayde;
+(function (Fayde) {
+    var Markup;
+    (function (Markup) {
+        var FrameworkTemplate = (function (_super) {
+            __extends(FrameworkTemplate, _super);
+            function FrameworkTemplate() {
+                _super.apply(this, arguments);
+            }
+            FrameworkTemplate.prototype.Validate = function () {
+                return "";
+            };
+            FrameworkTemplate.prototype.GetVisualTree = function (bindingSource) {
+                var uie = LoadImpl(this.App, this.$$markup, this.$$resources, bindingSource);
+                if (!(uie instanceof Fayde.UIElement))
+                    throw new XamlParseException("Template root visual is not a UIElement.");
+                return uie;
+            };
+            return FrameworkTemplate;
+        })(Fayde.DependencyObject);
+        Markup.FrameworkTemplate = FrameworkTemplate;
+        function setTemplateRoot(ft, root) {
+            if (root instanceof Element)
+                ft.$$markup = Markup.CreateXaml(root);
+        }
+        function setResources(ft, res) {
+            ft.$$resources = res;
+        }
+        function LoadXaml(app, xaml) {
+            var markup = Markup.CreateXaml(xaml);
+            return Load(app, markup);
+        }
+        Markup.LoadXaml = LoadXaml;
+        function Load(app, xm) {
+            return LoadImpl(app, xm);
+        }
+        Markup.Load = Load;
+        function LoadImpl(app, xm, resources, bindingSource) {
+            perfex.timer.start('MarkupLoad', xm.uri.toString());
+            var oresolve = {
+                isPrimitive: false,
+                type: undefined
+            };
+            var namescope = new Fayde.NameScope(true);
+            var active = Markup.Internal.createActiveObject(app, namescope, bindingSource);
+            var pactor = Markup.Internal.createPropertyActor(active, extractType, extractDP);
+            var oactor = Markup.Internal.createObjectActor(pactor);
+            var ractor = Markup.Internal.createResourcesActor(active, resources);
+            var last;
+            var parser = xm.createParser()
+                .setNamespaces(Fayde.XMLNS, Fayde.XMLNSX);
+            var parse = {
+                resolveType: function (uri, name) {
+                    if (!Fayde.TypeManager.resolveType(uri, name, oresolve))
+                        throw new XamlParseException("Could not resolve type [" + uri + "][" + name + "].");
+                    return oresolve;
+                },
+                resolveObject: function (type) {
+                    if (type === Fayde.ResourceDictionary && !pactor.isNewResources())
+                        return undefined;
+                    perfex.timer.start('MarkupCreateObject', type);
+                    var obj = new (type)();
+                    if (obj instanceof FrameworkTemplate)
+                        parser.skipBranch();
+                    else if (obj instanceof Markup.StaticResource)
+                        obj.setContext(active.getApp(), resources);
+                    perfex.timer.stop();
+                    return obj;
+                },
+                resolvePrimitive: function (type, text) {
+                    return nullstone.convertAnyToType(text, type);
+                },
+                resolveResources: function (owner, ownerType) {
+                    var rd = owner.Resources;
+                    return rd;
+                },
+                branchSkip: function (root, obj) {
+                    if (obj instanceof FrameworkTemplate) {
+                        var ft = last = obj;
+                        var err = obj.Validate();
+                        if (err)
+                            throw new XamlParseException(err);
+                        setTemplateRoot(ft, root);
+                        setResources(ft, ractor.get());
+                    }
+                },
+                object: function (obj, isContent) {
+                    active.set(obj);
+                    oactor.start();
+                    ractor.start();
+                },
+                objectEnd: function (obj, key, isContent, prev) {
+                    last = obj;
+                    ractor.end();
+                    oactor.end();
+                    active.set(prev);
+                    if (!active.obj)
+                        return;
+                    if (isContent) {
+                        pactor.startContent();
+                        pactor.addObject(obj, key);
+                        pactor.end();
+                    }
+                    else {
+                        pactor.addObject(obj, key);
+                    }
+                },
+                contentText: function (text) {
+                    pactor.setContentText(text);
+                },
+                name: function (name) {
+                    active.setName(name);
+                },
+                propertyStart: function (ownerType, propName) {
+                    pactor.start(ownerType, propName);
+                },
+                propertyEnd: function (ownerType, propName) {
+                    pactor.end();
+                },
+                attributeStart: function (ownerType, attrName) {
+                },
+                attributeEnd: function (ownerType, attrName, obj) {
+                    pactor.setObject(ownerType, attrName, obj);
+                },
+                error: function (err) {
+                    if (err instanceof nullstone.markup.xaml.SkipBranchError) {
+                        if (active.obj instanceof FrameworkTemplate)
+                            throw new XamlParseException("Templates must contain only 1 visual root and no other child elements.", err.root);
+                    }
+                    throw new XamlParseException("Invalid XAML in document '" + xm.uri + "'", err);
+                    return false;
+                },
+                end: function () {
+                }
+            };
+            function extractType(text) {
+                var prefix = null;
+                var name = text;
+                var ind = name.indexOf(':');
+                if (ind > -1) {
+                    prefix = name.substr(0, ind);
+                    name = name.substr(ind + 1);
+                }
+                var uri = parser.resolvePrefix(prefix);
+                Fayde.TypeManager.resolveType(uri, name, oresolve);
+                return oresolve.type;
+            }
+            function extractDP(text) {
+                var name = text;
+                var ind = name.indexOf('.');
+                var ownerType;
+                if (ind > -1) {
+                    ownerType = extractType(name.substr(0, ind));
+                    name = name.substr(ind + 1);
+                }
+                else {
+                    for (var en = parser.walkUpObjects(); en.moveNext();) {
+                        var style = en.current;
+                        if (style instanceof Fayde.Style) {
+                            ownerType = style.TargetType;
+                            if (!ownerType)
+                                throw new XamlParseException("Style must have a TargetType.");
+                            break;
+                        }
+                    }
+                }
+                return (ownerType)
+                    ? DependencyProperty.GetDependencyProperty(ownerType, name)
+                    : null;
+            }
+            parser.on(parse)
+                .parse(xm.root);
+            if (last instanceof Fayde.XamlObject) {
+                last.XamlNode.NameScope = namescope;
+            }
+            perfex.timer.stop();
+            return last;
+        }
+    })(Markup = Fayde.Markup || (Fayde.Markup = {}));
+})(Fayde || (Fayde = {}));
 /// <reference path="../Markup/Loader" />
 var Fayde;
 (function (Fayde) {
@@ -7851,137 +6690,16 @@ var Fayde;
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
 })(Fayde || (Fayde = {}));
 /// <reference path="UserControl.ts" />
-/// <reference path="../Core/XamlObjectCollection.ts" />
 var Fayde;
 (function (Fayde) {
     var Controls;
     (function (Controls) {
-        var PageState = (function (_super) {
-            __extends(PageState, _super);
-            function PageState() {
-                _super.apply(this, arguments);
-                this._IsSealed = false;
-            }
-            PageState.prototype.Seal = function () {
-                this._IsSealed = true;
-            };
-            PageState.Compare = function (state1, state2) {
-                var a = state1.VisualStateName;
-                var b = state2.VisualStateName;
-                return a.localeCompare(b);
-            };
-            PageState.VisualStateNameProperty = DependencyProperty.Register("VisualStateName", function () { return String; }, PageState, "Normal");
-            PageState.DeviceProperty = DependencyProperty.Register("Device", function () { return new Fayde.Enum(Fayde.DeviceType); }, PageState, Fayde.DeviceType.PC);
-            PageState.MinXProperty = DependencyProperty.Register("MinX", function () { return Number; }, PageState, 0);
-            PageState.MinYProperty = DependencyProperty.Register("MinY", function () { return Number; }, PageState, 0);
-            PageState.MaxXProperty = DependencyProperty.Register("MaxX", function () { return Number; }, PageState, Number.MAX_VALUE);
-            PageState.MaxYProperty = DependencyProperty.Register("MaxY", function () { return Number; }, PageState, Number.MAX_VALUE);
-            return PageState;
-        })(Fayde.DependencyObject);
-        Controls.PageState = PageState;
-        Fayde.CoreLibrary.add(PageState);
-        var PageStateCollection = (function (_super) {
-            __extends(PageStateCollection, _super);
-            function PageStateCollection() {
-                _super.apply(this, arguments);
-                this._IsSealed = false;
-            }
-            PageStateCollection.prototype.Seal = function () {
-                if (this._IsSealed)
-                    return;
-                for (var en = this.getEnumerator(); en.moveNext();) {
-                    en.current.Seal();
-                }
-                this._IsSealed = true;
-            };
-            PageStateCollection.prototype.AddingToCollection = function (value, error) {
-                if (!value || !this._ValidatePageState(value, error))
-                    return false;
-                return _super.prototype.AddingToCollection.call(this, value, error);
-            };
-            PageStateCollection.prototype._ValidatePageState = function (state, error) {
-                if (state.VisualStateName === undefined) {
-                    error.Message = "PageState.VisualStateName is required.";
-                    return false;
-                }
-                if (state.MinX === undefined || state.MaxX === undefined || state.MinY === undefined || state.MaxY === undefined) {
-                    error.Message = "PageState.(MinX, MaxX, MinY, MaxY) must have Values.";
-                    return false;
-                }
-                if (this._IsSealed) {
-                    error.Message = "PageState is sealed.";
-                    return false;
-                }
-                state.Seal();
-                return true;
-            };
-            return PageStateCollection;
-        })(Fayde.XamlObjectCollection);
-        Controls.PageStateCollection = PageStateCollection;
-        Fayde.CoreLibrary.add(PageStateCollection);
         var Page = (function (_super) {
             __extends(Page, _super);
             function Page() {
                 _super.call(this);
-                this.Device = Fayde.DeviceType.PC;
-                this.DeviceOrientation = Fayde.DeviceOrientation.Landscape;
                 this.DefaultStyleKey = Page;
-                Page.StatesProperty.Initialize(this).AttachTo(this);
-                this._initializeDeviceType();
-                this._initializeSizeChanges();
-                this._initializeOrientation();
             }
-            Page.prototype._initializeOrientation = function () {
-                var _this = this;
-                window.onorientationchange = function (e) { return _this._OrientationChanged(e); };
-            };
-            Page.prototype._initializeDeviceType = function () {
-                if (/Mobi/.test(navigator.userAgent))
-                    this.Device = Fayde.DeviceType.Phone;
-                else
-                    this.Device = Fayde.DeviceType.PC;
-                this._OrientationChanged(null);
-                this._goToState(this.Device == Fayde.DeviceType.PC ? "Landscape" : "Portrait");
-            };
-            Page.prototype._initializeSizeChanges = function () {
-                this.SizeChanged.on(this._UpdateState, this);
-            };
-            Page.prototype._OrientationChanged = function (ev) {
-                if (window.orientation === undefined)
-                    return;
-                var alpha = window.orientation;
-                if (alpha === -90 || alpha === 90) {
-                    this._goToState("Landscape");
-                    this.DeviceOrientation = Fayde.DeviceOrientation.Landscape;
-                }
-                else {
-                    this._goToState("Portrait");
-                    this.DeviceOrientation = Fayde.DeviceOrientation.Portrait;
-                }
-            };
-            Page.prototype._UpdateState = function (sender, e) {
-                if (this.States === undefined) {
-                    this.SizeChanged.off(this._UpdateState, this);
-                    return;
-                }
-                var width = window.innerWidth;
-                var height = window.innerHeight;
-                var enumerator = this.States.getEnumerator();
-                while (enumerator.moveNext()) {
-                    var item = enumerator.current;
-                    if (item === undefined)
-                        continue;
-                    if (width >= item.MinX && width <= item.MaxX &&
-                        height >= item.MinY && height <= item.MaxY &&
-                        this.Device === item.Device) {
-                        this._goToState(item.VisualStateName);
-                        break;
-                    }
-                }
-            };
-            Page.prototype._goToState = function (state) {
-                Fayde.Media.VSM.VisualStateManager.GoToState(this, state, true);
-            };
             Page.GetAsync = function (initiator, url) {
                 return Fayde.Markup.Resolve(url)
                     .then(function (xm) {
@@ -7994,7 +6712,6 @@ var Fayde;
                 });
             };
             Page.TitleProperty = DependencyProperty.Register("Title", function () { return String; }, Page);
-            Page.StatesProperty = DependencyProperty.RegisterImmutable("States", function () { return PageStateCollection; }, Page);
             return Page;
         })(Controls.UserControl);
         Controls.Page = Page;
@@ -8992,6 +7709,13 @@ var Fayde;
             ListBox.prototype.NotifyListItemLostFocus = function (lbi) {
                 this._FocusedIndex = -1;
             };
+            ListBox.prototype.OnItemsSourceChanged = function (e) {
+                _super.prototype.OnItemsSourceChanged.call(this, e);
+                var tsv = this.$TemplateScrollViewer;
+                if (tsv) {
+                    tsv.ScrollToVerticalOffset(0);
+                }
+            };
             ListBox.ItemContainerStyleProperty = DependencyProperty.Register("ItemContainerStyle", function () { return Fayde.Style; }, ListBox, undefined, function (d, args) { return d.OnItemContainerStyleChanged(args); });
             ListBox.IsSelectionActiveProperty = Controls.Primitives.Selector.IsSelectionActiveProperty;
             return ListBox;
@@ -9087,6 +7811,19 @@ var Fayde;
             upd.invalidateMetrics();
         }, false);
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var RoutedEventArgs = (function () {
+        function RoutedEventArgs() {
+            this.Handled = false;
+            this.Source = null;
+            this.OriginalSource = null;
+        }
+        return RoutedEventArgs;
+    })();
+    Fayde.RoutedEventArgs = RoutedEventArgs;
+    Fayde.CoreLibrary.add(RoutedEventArgs);
 })(Fayde || (Fayde = {}));
 /// <reference path="../Core/RoutedEventArgs.ts" />
 var Fayde;
@@ -9232,7 +7969,6 @@ var Fayde;
                 view.MouseLeftButtonUp.on(function (s, e) { return _this.OnMouseLeftButtonUp(e); }, this);
                 this.$Proxy = new Fayde.Text.Proxy(eventsMask, MAX_UNDO_COUNT);
                 this._SyncFont();
-                this._CheckWatermarkVisibility();
             }
             TextBoxBase.prototype._SyncFont = function () {
                 var _this = this;
@@ -9288,20 +8024,15 @@ var Fayde;
             TextBoxBase.prototype.OnApplyTemplate = function () {
                 _super.prototype.OnApplyTemplate.call(this);
                 this.$ContentProxy.setElement(this.GetTemplateChild("ContentElement", Fayde.FrameworkElement), this.$View);
-                this.$WatermarkElement = this.GetTemplateChild("WatermarkElement", Fayde.FrameworkElement);
-                this.$ContentProxy.setScrollElement(this.GetTemplateChild("ScrollElement", Fayde.FrameworkElement));
-                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnLostFocus = function (e) {
                 _super.prototype.OnLostFocus.call(this, e);
                 this.$View.setIsFocused(false);
-                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnGotFocus = function (e) {
                 _super.prototype.OnGotFocus.call(this, e);
                 this.$View.setIsFocused(true);
                 this.selectBasedonSelectionMode();
-                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnMouseLeftButtonDown = function (e) {
                 if (e.Handled)
@@ -9312,7 +8043,6 @@ var Fayde;
                 this._Selecting = true;
                 var cursor = this.$View.GetCursorFromPoint(e.GetPosition(this.$View));
                 this.$Proxy.beginSelect(cursor);
-                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnMouseLeftButtonUp = function (e) {
                 if (e.Handled)
@@ -9322,7 +8052,6 @@ var Fayde;
                 e.Handled = true;
                 this._Selecting = false;
                 this._Captured = false;
-                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnMouseMove = function (e) {
                 if (!this._Selecting)
@@ -9342,7 +8071,6 @@ var Fayde;
                 var pos = e.Device.GetTouchPoint(this.$View).Position;
                 var cursor = this.$View.GetCursorFromPoint(pos);
                 this.$Proxy.beginSelect(cursor);
-                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnTouchUp = function (e) {
                 _super.prototype.OnTouchUp.call(this, e);
@@ -9352,7 +8080,6 @@ var Fayde;
                     e.Device.ReleaseCapture(this);
                 e.Handled = true;
                 this._Selecting = false;
-                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnTouchMove = function (e) {
                 _super.prototype.OnTouchMove.call(this, e);
@@ -9426,8 +8153,6 @@ var Fayde;
                         if (args.Modifiers.Ctrl) {
                             switch (args.Key) {
                                 case Key.A:
-                                    if (isReadOnly)
-                                        break;
                                     handled = true;
                                     proxy.selectAll();
                                     break;
@@ -9446,7 +8171,6 @@ var Fayde;
                                     if (isReadOnly)
                                         break;
                                     this.$Clipboard.GetTextContents(function (text) { return proxy.paste(text); });
-                                    this._CheckWatermarkVisibility();
                                     handled = true;
                                     break;
                                 case Key.Y:
@@ -9456,10 +8180,10 @@ var Fayde;
                                     }
                                     break;
                                 case Key.Z:
-                                    if (isReadOnly)
-                                        break;
-                                    handled = true;
-                                    proxy.undo();
+                                    if (!isReadOnly) {
+                                        handled = true;
+                                        proxy.undo();
+                                    }
                                     break;
                             }
                         }
@@ -9469,7 +8193,6 @@ var Fayde;
                     args.Handled = handled;
                 }
                 proxy.end();
-                this._CheckWatermarkVisibility();
                 if (!args.Handled && !isReadOnly)
                     this.PostOnKeyDown(args);
             };
@@ -9490,12 +8213,7 @@ var Fayde;
                     proxy.enterText(args.Char);
                     args.Handled = true;
                 }
-                this._CheckWatermarkVisibility();
                 proxy.end();
-            };
-            TextBoxBase.prototype._CheckWatermarkVisibility = function () {
-                if (this.Watermark.length > 0 && this.$WatermarkElement)
-                    this.$WatermarkElement.Visibility = this.$Proxy.text.length > 0 || this.IsFocused ? Fayde.Visibility.Collapsed : Fayde.Visibility.Visible;
             };
             TextBoxBase.prototype._KeyDownBackSpace = function (modifiers) {
                 if (modifiers.Shift || modifiers.Alt)
@@ -9661,7 +8379,7 @@ var Fayde;
             TextBoxBase.SelectionStartProperty = DependencyProperty.RegisterFull("SelectionStart", function () { return Number; }, TextBoxBase, 0, undefined, undefined, true, positiveIntValidator);
             TextBoxBase.BaselineOffsetProperty = DependencyProperty.Register("BaselineOffset", function () { return Number; }, TextBoxBase);
             TextBoxBase.MaxLengthProperty = DependencyProperty.RegisterFull("MaxLength", function () { return Number; }, TextBoxBase, 0, undefined, undefined, undefined, positiveIntValidator);
-            TextBoxBase.WatermarkProperty = DependencyProperty.Register("Watermark", function () { return String; }, TextBoxBase, "");
+            TextBoxBase.SelectionOnFocusProperty = DependencyProperty.Register("SelectionOnFocus", function () { return new Fayde.Enum(Controls.SelectionOnFocus); }, TextBoxBase, Controls.SelectionOnFocus.Default);
             return TextBoxBase;
         })(Controls.Control);
         Controls.TextBoxBase = TextBoxBase;
@@ -10504,7 +9222,6 @@ var Fayde;
             Fayde.DPReaction(TextBox.TextProperty, function (tb, ov, nv) {
                 tb.$Proxy.setText(nv);
                 tb.$View.setText(tb.DisplayText);
-                tb._CheckWatermarkVisibility();
             }, false);
         })(reactions || (reactions = {}));
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
@@ -10943,77 +9660,6 @@ var Fayde;
         }
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
 })(Fayde || (Fayde = {}));
-var Fyade;
-(function (Fyade) {
-    var Controls;
-    (function (Controls) {
-        var Control = Fayde.Controls.Control;
-        var Media = Fayde.Media;
-        var MediaElement = Fayde.Controls.MediaElement;
-        var Uri = Fayde.Uri;
-        var Enum = Fayde.Enum;
-        var Button = Fayde.Controls.Button;
-        var ProgressBar = Fayde.Controls.ProgressBar;
-        var DpReaction = Fayde.DPReaction;
-        var Video = (function (_super) {
-            __extends(Video, _super);
-            function Video() {
-                _super.call(this);
-                this.DefaultStyleKey = Video;
-            }
-            Video._SourceCoercer = function (d, propd, value) {
-                if (typeof value === "string")
-                    return new Media.Videos.VideoSource(new Uri(value));
-                if (value instanceof Uri)
-                    return new Media.Videos.VideoSource(value);
-                return value;
-            };
-            Video.prototype.OnApplyTemplate = function () {
-                var _this = this;
-                _super.prototype.OnApplyTemplate.call(this);
-                this.Media = this.GetTemplateChild("PARTVideo", MediaElement);
-                this.PlayButton = this.GetTemplateChild("PARTPlayButton", Button);
-                this.PauseButton = this.GetTemplateChild("PARTPauseButton", Button);
-                this.PlayProgress = this.GetTemplateChild("PARTPlayProgress", ProgressBar);
-                this.BufferProgress = this.GetTemplateChild("PARTBufferProgress", ProgressBar);
-                if (this.PlayButton)
-                    this.PlayButton.Command = new Fayde.MVVM.RelayCommand(function (par) { return _this.PlayClicked(par); });
-                if (this.PauseButton)
-                    this.PauseButton.Command = new Fayde.MVVM.RelayCommand(function (par) { return _this.PauseClicked(par); });
-            };
-            Video.prototype.OnMouseEnter = function (e) {
-                _super.prototype.OnMouseEnter.call(this, e);
-                this.UpdateVisualState();
-            };
-            Video.prototype.OnMouseLeave = function (e) {
-                _super.prototype.OnMouseLeave.call(this, e);
-                this.UpdateVisualState();
-            };
-            Video.prototype.PlayClicked = function (par) {
-                this.Media.Play();
-            };
-            Video.prototype.PauseClicked = function (par) {
-                this.Media.Pause();
-            };
-            Video.prototype.SetSource = function (value) {
-                this.Source = value;
-            };
-            Video.SourceProperty = DependencyProperty.RegisterFull("Source", function () { return Media.Videos.VideoSource; }, Video, undefined, undefined, Video._SourceCoercer);
-            Video.StretchProperty = DependencyProperty.RegisterCore("Stretch", function () { return new Enum(Media.Stretch); }, Video, Media.Stretch.Uniform);
-            return Video;
-        })(Control);
-        Controls.Video = Video;
-        Fayde.CoreLibrary.add(Video);
-        Fayde.Controls.TemplateVisualStates(Video, { GroupName: "CommonStates", Name: "Normal" }, { GroupName: "CommonStates", Name: "MouseOver" }, { GroupName: "CommonStates", Name: "Disabled" });
-        Fayde.Controls.TemplateParts(Video, { Name: "PARTMedia", Type: MediaElement }, { Name: "PARTPlayButton", Type: Button }, { Name: "PARTPauseButton", Type: Button }, { Name: "PARTPlayProgress", Type: ProgressBar }, { Name: "PARTBufferProgress", Type: ProgressBar });
-        DpReaction(Video.SourceProperty, function (vid, ov, nv) {
-            vid.SetSource(nv);
-        }, false);
-        DpReaction(Video.StretchProperty, function (vid, ov, nv) {
-            vid.Stretch = nv;
-        }, false);
-    })(Controls = Fyade.Controls || (Fyade.Controls = {}));
-})(Fyade || (Fyade = {}));
 /// <reference path="Panel.ts" />
 var Fayde;
 (function (Fayde) {
@@ -11336,18 +9982,1403 @@ var Fayde;
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
-    var Controls;
-    (function (Controls) {
-        var WebBrowser = (function (_super) {
-            __extends(WebBrowser, _super);
-            function WebBrowser() {
-                _super.call(this);
+    function Clone(value) {
+        if (value === undefined)
+            return undefined;
+        if (value === null)
+            return null;
+        if (value instanceof Array)
+            return value.slice(0);
+        if (value !== Object(value))
+            return value;
+        if (value.Clone instanceof Function)
+            return value.Clone();
+        return extend(new value.constructor(), value);
+    }
+    Fayde.Clone = Clone;
+    function extend(obj) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        var s;
+        for (var i = 0, len = args.length; i < len; i++) {
+            if (s = args[i]) {
+                for (var prop in s) {
+                    obj[prop] = s[prop];
+                }
             }
-            return WebBrowser;
-        })(Controls.Control);
-        Controls.WebBrowser = WebBrowser;
-        Fayde.CoreLibrary.add(WebBrowser);
-    })(Controls = Fayde.Controls || (Fayde.Controls = {}));
+        }
+        return obj;
+    }
+})(Fayde || (Fayde = {}));
+/// <reference path="../Markup/Loader" />
+var Fayde;
+(function (Fayde) {
+    var DataTemplate = (function (_super) {
+        __extends(DataTemplate, _super);
+        function DataTemplate() {
+            _super.apply(this, arguments);
+        }
+        DataTemplate.DataTypeProperty = DependencyProperty.Register("DataType", function () { return Fayde.IType_; }, DataTemplate);
+        return DataTemplate;
+    })(Fayde.Markup.FrameworkTemplate);
+    Fayde.DataTemplate = DataTemplate;
+    Fayde.CoreLibrary.add(DataTemplate);
+})(Fayde || (Fayde = {}));
+var DependencyPropertyChangedEventArgs = (function () {
+    function DependencyPropertyChangedEventArgs() {
+    }
+    return DependencyPropertyChangedEventArgs;
+})();
+/// <reference path="DataTemplate.ts" />
+var Fayde;
+(function (Fayde) {
+    var HierarchicalDataTemplate = (function (_super) {
+        __extends(HierarchicalDataTemplate, _super);
+        function HierarchicalDataTemplate() {
+            _super.apply(this, arguments);
+        }
+        HierarchicalDataTemplate.ItemsSourceProperty = DependencyProperty.Register("ItemsSource", function () { return nullstone.IEnumerable_; }, HierarchicalDataTemplate);
+        HierarchicalDataTemplate.ItemTemplateProperty = DependencyProperty.Register("ItemTemplate", function () { return Fayde.DataTemplate; }, HierarchicalDataTemplate);
+        HierarchicalDataTemplate.ItemContainerStyleProperty = DependencyProperty.Register("ItemContainerStyle", function () { return Fayde.Style; }, HierarchicalDataTemplate);
+        return HierarchicalDataTemplate;
+    })(Fayde.DataTemplate);
+    Fayde.HierarchicalDataTemplate = HierarchicalDataTemplate;
+    Fayde.CoreLibrary.add(HierarchicalDataTemplate);
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var LayoutInformation = (function () {
+        function LayoutInformation() {
+        }
+        LayoutInformation.GetLayoutClip = function (uie) {
+            var rect = new minerva.Rect();
+            minerva.Rect.copyTo(uie.XamlNode.LayoutUpdater.assets.layoutClip, rect);
+            var geom = new Fayde.Media.RectangleGeometry();
+            geom.Rect = rect;
+            return geom;
+        };
+        LayoutInformation.GetLayoutSlot = function (uie) {
+            var rect = new minerva.Rect();
+            minerva.Rect.copyTo(uie.XamlNode.LayoutUpdater.assets.layoutSlot, rect);
+            return rect;
+        };
+        return LayoutInformation;
+    })();
+    Fayde.LayoutInformation = LayoutInformation;
+    Fayde.CoreLibrary.add(LayoutInformation);
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var NameScope = (function () {
+        function NameScope(isRoot) {
+            this.IsRoot = false;
+            this.XNodes = {};
+            if (isRoot)
+                this.IsRoot = isRoot;
+        }
+        NameScope.prototype.FindName = function (name) {
+            return this.XNodes[name];
+        };
+        NameScope.prototype.RegisterName = function (name, xnode) {
+            var existing = this.XNodes[name];
+            if (existing && existing !== xnode)
+                throw new InvalidOperationException("Name is already registered.");
+            this.XNodes[name] = xnode;
+        };
+        NameScope.prototype.UnregisterName = function (name) {
+            this.XNodes[name] = undefined;
+        };
+        NameScope.prototype.Absorb = function (otherNs) {
+            var on = otherNs.XNodes;
+            for (var name in on) {
+                this.RegisterName(name, on[name]);
+            }
+        };
+        return NameScope;
+    })();
+    Fayde.NameScope = NameScope;
+})(Fayde || (Fayde = {}));
+/// <reference path="DependencyObject.ts" />
+/// <reference path="XamlObjectCollection.ts" />
+var Fayde;
+(function (Fayde) {
+    var ResourceDictionaryCollection = (function (_super) {
+        __extends(ResourceDictionaryCollection, _super);
+        function ResourceDictionaryCollection() {
+            _super.apply(this, arguments);
+        }
+        ResourceDictionaryCollection.prototype.Get = function (key) {
+            for (var en = this.getEnumerator(); en.moveNext();) {
+                var cur = en.current.Get(key);
+                if (cur !== undefined)
+                    return cur;
+            }
+            return undefined;
+        };
+        ResourceDictionaryCollection.prototype.AddingToCollection = function (value, error) {
+            if (!_super.prototype.AddingToCollection.call(this, value, error))
+                return false;
+            return this._AssertNoCycles(value, value.XamlNode.ParentNode, error);
+        };
+        ResourceDictionaryCollection.prototype._AssertNoCycles = function (subtreeRoot, firstAncestorNode, error) {
+            var curNode = firstAncestorNode;
+            while (curNode) {
+                var rd = curNode.XObject;
+                if (rd instanceof ResourceDictionary) {
+                    var cycleFound = false;
+                    if (rd === subtreeRoot)
+                        cycleFound = true;
+                    else if (rd.Source && nullstone.equals(rd.Source, subtreeRoot.Source))
+                        cycleFound = true;
+                    if (cycleFound) {
+                        error.Message = "Cycle found in resource dictionaries.";
+                        error.Number = BError.InvalidOperation;
+                        return false;
+                    }
+                }
+                curNode = curNode.ParentNode;
+            }
+            for (var en = subtreeRoot.MergedDictionaries.getEnumerator(); en.moveNext();) {
+                if (!this._AssertNoCycles(en.current, firstAncestorNode, error))
+                    return false;
+            }
+            return true;
+        };
+        return ResourceDictionaryCollection;
+    })(Fayde.XamlObjectCollection);
+    Fayde.ResourceDictionaryCollection = ResourceDictionaryCollection;
+    Fayde.CoreLibrary.add(ResourceDictionaryCollection);
+    var ResourceDictionary = (function (_super) {
+        __extends(ResourceDictionary, _super);
+        function ResourceDictionary() {
+            _super.apply(this, arguments);
+            this._Keys = [];
+            this._Values = [];
+            this._IsSourceLoaded = false;
+            this._SourceBacking = null;
+        }
+        Object.defineProperty(ResourceDictionary.prototype, "MergedDictionaries", {
+            get: function () {
+                var md = this._MergedDictionaries;
+                if (!md) {
+                    md = this._MergedDictionaries = new ResourceDictionaryCollection();
+                    md.AttachTo(this);
+                }
+                return md;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(ResourceDictionary.prototype, "Count", {
+            get: function () {
+                return this._Values.length;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        ResourceDictionary.prototype.AttachTo = function (xobj) {
+            var error = new BError();
+            if (!this.XamlNode.AttachTo(xobj.XamlNode, error))
+                error.ThrowException();
+        };
+        ResourceDictionary.prototype.Contains = function (key) {
+            return this._Keys.indexOf(key) > -1;
+        };
+        ResourceDictionary.prototype.Get = function (key) {
+            if (!!this.Source) {
+                return this._GetFromSource(key);
+            }
+            var index = this._Keys.indexOf(key);
+            if (index > -1)
+                return this._Values[index];
+            var md = this._MergedDictionaries;
+            if (md)
+                return md.Get(key);
+            return undefined;
+        };
+        ResourceDictionary.prototype.Set = function (key, value) {
+            if (key === undefined)
+                return false;
+            if (value === undefined)
+                return this.Remove(key);
+            var index = this._Keys.indexOf(key);
+            var error = new BError();
+            if (value instanceof Fayde.XamlObject && !value.XamlNode.AttachTo(this.XamlNode, error)) {
+                if (error.Message)
+                    throw new Exception(error.Message);
+                return false;
+            }
+            if (index < 0) {
+                this._Keys.push(key);
+                this._Values.push(value);
+            }
+            else {
+                var oldValue = this._Values[index];
+                this._Keys[index] = key;
+                this._Values[index] = value;
+                if (oldValue instanceof Fayde.XamlObject)
+                    oldValue.XamlNode.Detach();
+            }
+            return true;
+        };
+        ResourceDictionary.prototype.Remove = function (key) {
+            var index = this._Keys.indexOf(key);
+            if (index < 0)
+                return false;
+            this._Keys.splice(index, 1);
+            var oldvalue = this._Values.splice(index, 1)[0];
+            if (oldvalue instanceof Fayde.XamlObject)
+                oldvalue.XamlNode.Detach();
+        };
+        ResourceDictionary.prototype.getEnumerator = function (reverse) {
+            return nullstone.IEnumerator_.fromArray(this._Values, reverse);
+        };
+        ResourceDictionary.prototype.GetNodeEnumerator = function (reverse) {
+            var prev = this.getEnumerator(reverse);
+            return {
+                current: undefined,
+                moveNext: function () {
+                    if (prev.moveNext()) {
+                        this.current = undefined;
+                        return false;
+                    }
+                    var xobj = prev.current;
+                    this.current = xobj.XamlNode;
+                    return true;
+                }
+            };
+        };
+        ResourceDictionary.prototype._GetFromSource = function (key) {
+            if (!this._IsSourceLoaded) {
+                this._SourceBacking = Fayde.Markup.Load(this.App, nullstone.markup.xaml.XamlMarkup.create(this.Source));
+                this._IsSourceLoaded = true;
+            }
+            return this._SourceBacking.Get(key);
+        };
+        return ResourceDictionary;
+    })(Fayde.XamlObject);
+    Fayde.ResourceDictionary = ResourceDictionary;
+    Fayde.CoreLibrary.add(ResourceDictionary);
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var RoutedEvent = (function (_super) {
+        __extends(RoutedEvent, _super);
+        function RoutedEvent() {
+            _super.apply(this, arguments);
+        }
+        return RoutedEvent;
+    })(nullstone.Event);
+    Fayde.RoutedEvent = RoutedEvent;
+    Fayde.CoreLibrary.add(RoutedEvent);
+})(Fayde || (Fayde = {}));
+/// <reference path="RoutedEvent.ts" />
+/// <reference path="RoutedEventArgs.ts" />
+var Fayde;
+(function (Fayde) {
+    var RoutedPropertyChangedEvent = (function (_super) {
+        __extends(RoutedPropertyChangedEvent, _super);
+        function RoutedPropertyChangedEvent() {
+            _super.apply(this, arguments);
+        }
+        return RoutedPropertyChangedEvent;
+    })(Fayde.RoutedEvent);
+    Fayde.RoutedPropertyChangedEvent = RoutedPropertyChangedEvent;
+    Fayde.CoreLibrary.add(RoutedPropertyChangedEvent);
+    var RoutedPropertyChangedEventArgs = (function (_super) {
+        __extends(RoutedPropertyChangedEventArgs, _super);
+        function RoutedPropertyChangedEventArgs(oldValue, newValue) {
+            _super.call(this);
+            Object.defineProperty(this, "OldValue", { value: oldValue, writable: false });
+            Object.defineProperty(this, "NewValue", { value: newValue, writable: false });
+        }
+        return RoutedPropertyChangedEventArgs;
+    })(Fayde.RoutedEventArgs);
+    Fayde.RoutedPropertyChangedEventArgs = RoutedPropertyChangedEventArgs;
+    Fayde.CoreLibrary.add(RoutedPropertyChangedEventArgs);
+})(Fayde || (Fayde = {}));
+/// <reference path="RoutedEvent.ts" />
+/// <reference path="RoutedEventArgs.ts" />
+var Fayde;
+(function (Fayde) {
+    var RoutedPropertyChangingEvent = (function (_super) {
+        __extends(RoutedPropertyChangingEvent, _super);
+        function RoutedPropertyChangingEvent() {
+            _super.apply(this, arguments);
+        }
+        return RoutedPropertyChangingEvent;
+    })(Fayde.RoutedEvent);
+    Fayde.RoutedPropertyChangingEvent = RoutedPropertyChangingEvent;
+    Fayde.CoreLibrary.add(RoutedPropertyChangingEvent);
+    var RoutedPropertyChangingEventArgs = (function (_super) {
+        __extends(RoutedPropertyChangingEventArgs, _super);
+        function RoutedPropertyChangingEventArgs(propd, oldValue, newValue, isCancelable) {
+            _super.call(this);
+            this._Cancel = false;
+            this.InCoercion = false;
+            this.Property = propd;
+            this.OldValue = oldValue;
+            this.NewValue = newValue;
+            this._IsCancelable = isCancelable;
+        }
+        Object.defineProperty(RoutedPropertyChangingEventArgs.prototype, "IsCancellable", {
+            get: function () { return this._IsCancelable; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RoutedPropertyChangingEventArgs.prototype, "Cancel", {
+            get: function () { return this._Cancel; },
+            set: function (value) {
+                if (this._IsCancelable)
+                    this._Cancel = value;
+                else if (value)
+                    throw new InvalidOperationException("Not cancelable.");
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return RoutedPropertyChangingEventArgs;
+    })(Fayde.RoutedEventArgs);
+    Fayde.RoutedPropertyChangingEventArgs = RoutedPropertyChangingEventArgs;
+    Fayde.CoreLibrary.add(RoutedPropertyChangingEventArgs);
+})(Fayde || (Fayde = {}));
+/// <reference path="DependencyObject.ts" />
+/// <reference path="XamlObjectCollection.ts" />
+var Fayde;
+(function (Fayde) {
+    var SetterCollection = (function (_super) {
+        __extends(SetterCollection, _super);
+        function SetterCollection() {
+            _super.apply(this, arguments);
+            this._IsSealed = false;
+        }
+        SetterCollection.prototype.Seal = function () {
+            if (this._IsSealed)
+                return;
+            for (var en = this.getEnumerator(); en.moveNext();) {
+                en.current.Seal();
+            }
+            this._IsSealed = true;
+        };
+        SetterCollection.prototype.AddingToCollection = function (value, error) {
+            if (!value || !this._ValidateSetter(value, error))
+                return false;
+            return _super.prototype.AddingToCollection.call(this, value, error);
+        };
+        SetterCollection.prototype._ValidateSetter = function (setter, error) {
+            if (!(setter.Property instanceof DependencyProperty)) {
+                error.Message = "Setter.Property must be a DependencyProperty.";
+                return false;
+            }
+            if (setter.Value === undefined) {
+                if (!setter._HasDeferredValueExpression(Setter.ValueProperty)) {
+                    error.Message = "Setter must have a Value.";
+                    return false;
+                }
+            }
+            if (this._IsSealed) {
+                error.Message = "Setter is sealed.";
+                return false;
+            }
+            return true;
+        };
+        return SetterCollection;
+    })(Fayde.XamlObjectCollection);
+    Fayde.SetterCollection = SetterCollection;
+    Fayde.CoreLibrary.add(SetterCollection);
+    var Setter = (function (_super) {
+        __extends(Setter, _super);
+        function Setter() {
+            _super.apply(this, arguments);
+            this._IsSealed = false;
+        }
+        Setter.prototype.Seal = function () {
+            var propd = this.Property;
+            var val = this.Value;
+            var propTargetType = propd.GetTargetType();
+            this.SetCurrentValue(Setter.ConvertedValueProperty, nullstone.convertAnyToType(val, propTargetType));
+            this._IsSealed = true;
+        };
+        Setter.Compare = function (setter1, setter2) {
+            var a = setter1.Property;
+            var b = setter2.Property;
+            return (a === b) ? 0 : ((a._ID > b._ID) ? 1 : -1);
+        };
+        Setter.PropertyProperty = DependencyProperty.Register("Property", function () { return DependencyProperty; }, Setter);
+        Setter.ValueProperty = DependencyProperty.Register("Value", function () { return Object; }, Setter);
+        Setter.ConvertedValueProperty = DependencyProperty.RegisterReadOnly("ConvertedValue", function () { return Object; }, Setter);
+        return Setter;
+    })(Fayde.DependencyObject);
+    Fayde.Setter = Setter;
+    Fayde.CoreLibrary.add(Setter);
+})(Fayde || (Fayde = {}));
+/// <reference path="RoutedEventArgs.ts" />
+var Fayde;
+(function (Fayde) {
+    var SizeChangedEventArgs = (function (_super) {
+        __extends(SizeChangedEventArgs, _super);
+        function SizeChangedEventArgs(previousSize, newSize) {
+            _super.call(this);
+            Object.defineProperty(this, "PreviousSize", { value: new minerva.Size(), writable: false });
+            Object.defineProperty(this, "NewSize", { value: new minerva.Size(), writable: false });
+            minerva.Size.copyTo(previousSize, this.PreviousSize);
+            minerva.Size.copyTo(newSize, this.NewSize);
+        }
+        return SizeChangedEventArgs;
+    })(Fayde.RoutedEventArgs);
+    Fayde.SizeChangedEventArgs = SizeChangedEventArgs;
+    Fayde.CoreLibrary.add(SizeChangedEventArgs);
+})(Fayde || (Fayde = {}));
+/// <reference path="DependencyObject" />
+/// <reference path="../Markup/ContentAnnotation" />
+var Fayde;
+(function (Fayde) {
+    var Style = (function (_super) {
+        __extends(Style, _super);
+        function Style() {
+            _super.call(this);
+            this._IsSealed = false;
+            var coll = Style.SettersProperty.Initialize(this);
+            coll.AttachTo(this);
+        }
+        Style.prototype.Seal = function () {
+            if (this._IsSealed)
+                return;
+            this.Setters.Seal();
+            this._IsSealed = true;
+            var base = this.BasedOn;
+            if (base)
+                base.Seal();
+        };
+        Style.prototype.Validate = function (instance, error) {
+            var targetType = this.TargetType;
+            var parentType = instance.constructor;
+            if (this._IsSealed) {
+                if (!(instance instanceof targetType)) {
+                    error.Number = BError.XamlParse;
+                    error.Message = "Style.TargetType (" + targetType.name + ") is not a subclass of (" + parentType.name + ")";
+                    return false;
+                }
+                return true;
+            }
+            var cycles = [];
+            var root = this;
+            while (root) {
+                if (cycles.indexOf(root) > -1) {
+                    error.Number = BError.InvalidOperation;
+                    error.Message = "Circular reference in Style.BasedOn";
+                    return false;
+                }
+                cycles.push(root);
+                root = root.BasedOn;
+            }
+            cycles = null;
+            root = this;
+            var targetType;
+            while (root) {
+                targetType = root.TargetType;
+                if (root === this) {
+                    if (!targetType) {
+                        error.Number = BError.InvalidOperation;
+                        error.Message = "TargetType cannot be null";
+                        return false;
+                    }
+                    else if (!nullstone.doesInheritFrom(parentType, targetType)) {
+                        error.Number = BError.XamlParse;
+                        error.Message = "Style.TargetType (" + targetType.name + ") is not a subclass of (" + parentType.name + ")";
+                        return false;
+                    }
+                }
+                else if (!targetType || !nullstone.doesInheritFrom(parentType, targetType)) {
+                    error.Number = BError.InvalidOperation;
+                    error.Message = "Style.TargetType (" + (targetType ? targetType.name : "<Not Specified>") + ") is not a subclass of (" + parentType.name + ")";
+                    return false;
+                }
+                parentType = targetType;
+                root = root.BasedOn;
+            }
+            this.Seal();
+            return true;
+        };
+        Style.SettersProperty = DependencyProperty.RegisterImmutable("Setters", function () { return Fayde.SetterCollection; }, Style);
+        Style.BasedOnProperty = DependencyProperty.Register("BasedOn", function () { return Style; }, Style);
+        Style.TargetTypeProperty = DependencyProperty.Register("TargetType", function () { return Fayde.IType_; }, Style);
+        return Style;
+    })(Fayde.DependencyObject);
+    Fayde.Style = Style;
+    Fayde.CoreLibrary.add(Style);
+    Fayde.Markup.Content(Style, Style.SettersProperty);
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var TemplateBinding = (function () {
+        function TemplateBinding() {
+        }
+        TemplateBinding.prototype.init = function (val) {
+            this.SourceProperty = val;
+        };
+        TemplateBinding.prototype.transmute = function (os) {
+            return new Fayde.TemplateBindingExpression(this.SourceProperty);
+        };
+        return TemplateBinding;
+    })();
+    Fayde.TemplateBinding = TemplateBinding;
+    Fayde.CoreLibrary.add(TemplateBinding);
+})(Fayde || (Fayde = {}));
+/// <reference path="DependencyObject.ts" />
+/// <reference path="XamlObjectCollection.ts" />
+var Fayde;
+(function (Fayde) {
+    var TriggerAction = (function (_super) {
+        __extends(TriggerAction, _super);
+        function TriggerAction() {
+            _super.apply(this, arguments);
+        }
+        TriggerAction.prototype.Fire = function () { };
+        return TriggerAction;
+    })(Fayde.DependencyObject);
+    Fayde.TriggerAction = TriggerAction;
+    Fayde.CoreLibrary.add(TriggerAction);
+    var TriggerActionCollection = (function (_super) {
+        __extends(TriggerActionCollection, _super);
+        function TriggerActionCollection() {
+            _super.apply(this, arguments);
+        }
+        TriggerActionCollection.prototype.Fire = function () {
+            var enumerator = this.getEnumerator();
+            while (enumerator.moveNext()) {
+                enumerator.current.Fire();
+            }
+        };
+        return TriggerActionCollection;
+    })(Fayde.XamlObjectCollection);
+    Fayde.TriggerActionCollection = TriggerActionCollection;
+    Fayde.CoreLibrary.add(TriggerActionCollection);
+    var TriggerBase = (function (_super) {
+        __extends(TriggerBase, _super);
+        function TriggerBase() {
+            _super.apply(this, arguments);
+        }
+        TriggerBase.prototype.Attach = function (target) { };
+        TriggerBase.prototype.Detach = function (target) { };
+        return TriggerBase;
+    })(Fayde.DependencyObject);
+    Fayde.TriggerBase = TriggerBase;
+    Fayde.CoreLibrary.add(TriggerBase);
+    var EventTrigger = (function (_super) {
+        __extends(EventTrigger, _super);
+        function EventTrigger() {
+            _super.call(this);
+            this._IsAttached = false;
+            var coll = EventTrigger.ActionsProperty.Initialize(this);
+            coll.AttachTo(this);
+        }
+        EventTrigger.prototype.Attach = function (target) {
+            if (this._IsAttached)
+                return;
+            var evt = this._ParseEventName(target);
+            if (evt) {
+                this._IsAttached = true;
+                evt.on(this._FireActions, this);
+                return;
+            }
+            console.warn("Could not attach to RoutedEvent: " + this.RoutedEvent);
+        };
+        EventTrigger.prototype.Detach = function (target) {
+            var evt = this._ParseEventName(target);
+            if (evt)
+                evt.off(this._FireActions, this);
+            this._IsAttached = false;
+        };
+        EventTrigger.prototype._FireActions = function (sender, e) {
+            var actions = this.Actions;
+            if (actions)
+                actions.Fire();
+        };
+        EventTrigger.prototype._ParseEventName = function (target) {
+            var routedEventName = this.RoutedEvent;
+            var tokens = routedEventName.split(".");
+            if (tokens.length === 1)
+                routedEventName = tokens[0];
+            else if (tokens.length === 2)
+                routedEventName = tokens[1];
+            else
+                return undefined;
+            var evt = target[routedEventName];
+            if (evt instanceof Fayde.RoutedEvent)
+                return evt;
+            return undefined;
+        };
+        EventTrigger.ActionsProperty = DependencyProperty.RegisterImmutable("Actions", function () { return TriggerActionCollection; }, EventTrigger);
+        EventTrigger.RoutedEventProperty = DependencyProperty.Register("RoutedEvent", function () { return String; }, EventTrigger);
+        return EventTrigger;
+    })(TriggerBase);
+    Fayde.EventTrigger = EventTrigger;
+    Fayde.CoreLibrary.add(EventTrigger);
+    Fayde.Markup.Content(EventTrigger, EventTrigger.ActionsProperty);
+    var TriggerCollection = (function (_super) {
+        __extends(TriggerCollection, _super);
+        function TriggerCollection() {
+            _super.apply(this, arguments);
+        }
+        Object.defineProperty(TriggerCollection.prototype, "ParentXamlObject", {
+            get: function () {
+                var parentNode = this.XamlNode.ParentNode;
+                if (!parentNode)
+                    return undefined;
+                return parentNode.XObject;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        TriggerCollection.prototype.AddingToCollection = function (value, error) {
+            if (!_super.prototype.AddingToCollection.call(this, value, error))
+                return false;
+            var parent = this.ParentXamlObject;
+            if (parent)
+                value.Attach(parent);
+            return true;
+        };
+        TriggerCollection.prototype.RemovedFromCollection = function (value, isValueSafe) {
+            _super.prototype.RemovedFromCollection.call(this, value, isValueSafe);
+            var parent = this.ParentXamlObject;
+            if (parent)
+                value.Detach(parent);
+        };
+        TriggerCollection.prototype.AttachTarget = function (target) {
+            var enumerator = this.getEnumerator();
+            while (enumerator.moveNext()) {
+                enumerator.current.Attach(target);
+            }
+        };
+        TriggerCollection.prototype.DetachTarget = function (target) {
+            var enumerator = this.getEnumerator();
+            while (enumerator.moveNext()) {
+                enumerator.current.Detach(target);
+            }
+        };
+        return TriggerCollection;
+    })(Fayde.XamlObjectCollection);
+    Fayde.TriggerCollection = TriggerCollection;
+    Fayde.CoreLibrary.add(TriggerCollection);
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var VisualTreeEnum = (function () {
+        function VisualTreeEnum() {
+        }
+        VisualTreeEnum.GetAncestors = function (uie) {
+            return new AncestorsEnumerable(uie);
+        };
+        return VisualTreeEnum;
+    })();
+    Fayde.VisualTreeEnum = VisualTreeEnum;
+    var AncestorsEnumerable = (function () {
+        function AncestorsEnumerable(uie) {
+            this.uie = uie;
+        }
+        AncestorsEnumerable.prototype.getEnumerator = function () {
+            var curNode = this.uie ? this.uie.XamlNode : null;
+            var e = {
+                current: undefined,
+                moveNext: function () {
+                    curNode = curNode ? curNode.VisualParentNode : undefined;
+                    e.current = curNode ? curNode.XObject : undefined;
+                    return e.current !== undefined;
+                }
+            };
+            return e;
+        };
+        return AncestorsEnumerable;
+    })();
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var VisualTreeHelper = (function () {
+        function VisualTreeHelper() {
+        }
+        VisualTreeHelper.GetParent = function (d) {
+            if (!(d instanceof Fayde.FrameworkElement))
+                throw new InvalidOperationException("Reference is not a valid visual DependencyObject");
+            var parentNode = d.XamlNode.VisualParentNode;
+            if (parentNode)
+                return parentNode.XObject;
+        };
+        VisualTreeHelper.GetParentOfType = function (d, type) {
+            if (!(d instanceof Fayde.FrameworkElement))
+                throw new InvalidOperationException("Reference is not a valid visual DependencyObject");
+            var curNode = d.XamlNode;
+            while ((curNode = curNode.VisualParentNode)) {
+                if (curNode.XObject instanceof type)
+                    return curNode.XObject;
+            }
+            return undefined;
+        };
+        VisualTreeHelper.GetRoot = function (d) {
+            if (!(d instanceof Fayde.FrameworkElement))
+                throw new InvalidOperationException("Reference is not a valid visual DependencyObject");
+            var rootNode = d.XamlNode.GetVisualRoot();
+            if (rootNode)
+                return rootNode.XObject;
+        };
+        VisualTreeHelper.GetChild = function (d, childIndex) {
+            if (!(d instanceof Fayde.FrameworkElement))
+                throw new InvalidOperationException("Reference is not a valid visual DependencyObject");
+            var feNode = d.XamlNode;
+            var subtreeNode = feNode.SubtreeNode;
+            if (!subtreeNode)
+                throw new IndexOutOfRangeException(childIndex);
+            var subtree = subtreeNode.XObject;
+            if (subtree instanceof Fayde.XamlObjectCollection)
+                return subtree.GetValueAt(childIndex);
+            if ((subtree instanceof Fayde.UIElement) && childIndex === 0)
+                return subtree;
+            throw new IndexOutOfRangeException(childIndex);
+        };
+        VisualTreeHelper.GetChildrenCount = function (d) {
+            if (!(d instanceof Fayde.FrameworkElement))
+                throw new InvalidOperationException("Reference is not a valid visual DependencyObject");
+            var feNode = d.XamlNode;
+            var subtreeNode = feNode.SubtreeNode;
+            if (!subtreeNode)
+                return 0;
+            var subtree = subtreeNode.XObject;
+            if (subtreeNode.XObject instanceof Fayde.XamlObjectCollection)
+                return subtree.Count;
+            if (subtree instanceof Fayde.UIElement)
+                return 1;
+            return 0;
+        };
+        VisualTreeHelper.FindElementsInHostCoordinates = function (pos, uie) {
+            return minerva.findElementsInHostSpace(pos, uie.XamlNode.LayoutUpdater)
+                .map(function (upd) { return upd.getAttachedValue("$node").XObject; });
+        };
+        VisualTreeHelper.__Debug = function (ui, func) {
+            var uin;
+            if (ui instanceof Fayde.UIElement) {
+                uin = ui.XamlNode;
+            }
+            else if (ui instanceof Fayde.UINode) {
+                uin = ui;
+            }
+            else if (ui instanceof minerva.core.Updater) {
+                uin = ui.getAttachedValue("$node");
+            }
+            var topNode;
+            if (!uin) {
+                var rv = Fayde.Application.Current.RootVisual;
+                topNode = (rv) ? rv.XamlNode : null;
+            }
+            else {
+                topNode = uin.GetVisualRoot();
+            }
+            if (!topNode)
+                return "[No top node.]";
+            if (!func)
+                func = VisualTreeHelper.__DebugUIElement;
+            return VisualTreeHelper.__DebugTree(topNode, uin, 1, func);
+        };
+        VisualTreeHelper.__DebugTree = function (curNode, matchNode, tabIndex, func) {
+            var str = "";
+            if (curNode === matchNode) {
+                for (var i = 0; i < tabIndex; i++) {
+                    str += ">>>>>>>>";
+                }
+            }
+            else {
+                for (var i = 0; i < tabIndex; i++) {
+                    str += "\t";
+                }
+            }
+            var cur = curNode.XObject;
+            str += cur.constructor.name;
+            var id = cur._ID;
+            if (id)
+                str += "[" + id + "]";
+            var name = curNode.Name;
+            str += " [";
+            var ns = curNode.NameScope;
+            if (!ns)
+                str += "^";
+            else if (ns.IsRoot)
+                str += "+";
+            else
+                str += "-";
+            str += name + "]";
+            if (func)
+                str += func(curNode, tabIndex);
+            str += "\n";
+            var enumerator = curNode.GetVisualTreeEnumerator();
+            if (!enumerator)
+                return str;
+            var childNode;
+            while (enumerator.moveNext()) {
+                childNode = enumerator.current;
+                str += VisualTreeHelper.__DebugTree(childNode, matchNode, tabIndex + 1, func);
+            }
+            return str;
+        };
+        VisualTreeHelper.__DebugUIElement = function (uin, tabIndex) {
+            if (!uin)
+                return "";
+            var uie = uin.XObject;
+            var str = "(";
+            if (uie.Visibility === Fayde.Visibility.Visible)
+                str += "Visible";
+            else
+                str += "Collapsed";
+            var lu = uin.LayoutUpdater;
+            if (lu) {
+                str += " ";
+                var ls = lu.assets.layoutSlot;
+                str += "(" + ls.x + "," + ls.y + ")(" + ls.width + "," + ls.height + ")";
+            }
+            str += ")";
+            var t = uie.TemplateOwner;
+            str += "$TO=" + (t ? t.constructor.name : "(null)");
+            var gridStr = VisualTreeHelper.__DebugGrid(uin, tabIndex);
+            if (gridStr)
+                str += "\n" + gridStr;
+            return str;
+        };
+        VisualTreeHelper.__DebugGrid = function (uin, tabIndex) {
+            var grid;
+            if (uin.XObject instanceof Fayde.Controls.Grid)
+                grid = uin.XObject;
+            if (!grid)
+                return "";
+            var rds = grid.RowDefinitions;
+            var rcount = rds.Count;
+            var cds = grid.ColumnDefinitions;
+            var ccount = cds.Count;
+            var tabs = "";
+            for (var i = 0; i < tabIndex; i++) {
+                tabs += "\t";
+            }
+            var str = "";
+            if (rcount > 0) {
+                str += tabs;
+                str += "  Rows (" + rcount + "):\n";
+                var rowdef;
+                for (var en = rds.getEnumerator(), i = 0; en.moveNext(); i++) {
+                    rowdef = en.current;
+                    str += tabs;
+                    str += "\t[" + i + "] -> " + rowdef.ActualHeight + "\n";
+                }
+            }
+            var enumerator2;
+            if (ccount > 0) {
+                str += tabs;
+                str += "  Columns (" + ccount + "):\n";
+                var coldef;
+                for (var en2 = cds.getEnumerator(), i = 0; en2.moveNext(); i++) {
+                    coldef = en2.current;
+                    str += tabs;
+                    str += "\t[" + i + "] -> " + coldef.ActualWidth + "\n";
+                }
+            }
+            return str;
+        };
+        VisualTreeHelper.__DebugUIElementLayout = function (uin, tabIndex) {
+            if (!uin)
+                return "";
+            return uin.LayoutUpdater._DebugLayout();
+        };
+        VisualTreeHelper.__DebugLayout = function (ui) {
+            return VisualTreeHelper.__Debug(ui, VisualTreeHelper.__DebugUIElementLayout);
+        };
+        VisualTreeHelper.__GetById = function (id) {
+            var rv = Fayde.Application.Current.RootVisual;
+            var topNode = (rv) ? rv.XamlNode : null;
+            if (!topNode)
+                return;
+            var walker = Fayde.DeepTreeWalker(topNode);
+            var curNode;
+            while (curNode = walker.Step()) {
+                if (curNode.XObject._ID === id)
+                    return curNode.XObject;
+            }
+        };
+        return VisualTreeHelper;
+    })();
+    Fayde.VisualTreeHelper = VisualTreeHelper;
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    (function (VisualTreeDirection) {
+        VisualTreeDirection[VisualTreeDirection["Logical"] = 0] = "Logical";
+        VisualTreeDirection[VisualTreeDirection["Reverse"] = 1] = "Reverse";
+        VisualTreeDirection[VisualTreeDirection["ZForward"] = 2] = "ZForward";
+        VisualTreeDirection[VisualTreeDirection["ZReverse"] = 3] = "ZReverse";
+    })(Fayde.VisualTreeDirection || (Fayde.VisualTreeDirection = {}));
+    var VisualTreeDirection = Fayde.VisualTreeDirection;
+    function mergeSetters(arr, dps, style) {
+        var enumerator = style.Setters.getEnumerator(true);
+        var setter;
+        while (enumerator.moveNext()) {
+            setter = enumerator.current;
+            if (!(setter instanceof Fayde.Setter))
+                continue;
+            var propd = setter.Property;
+            if (!propd)
+                continue;
+            if (dps[propd._ID])
+                continue;
+            dps[propd._ID] = setter;
+            arr.push(setter);
+        }
+    }
+    function SingleStyleWalker(style) {
+        var dps = [];
+        var flattenedSetters = [];
+        var cur = style;
+        while (cur) {
+            mergeSetters(flattenedSetters, dps, cur);
+            cur = cur.BasedOn;
+        }
+        flattenedSetters.sort(Fayde.Setter.Compare);
+        return {
+            Step: function () {
+                return flattenedSetters.shift();
+            }
+        };
+    }
+    Fayde.SingleStyleWalker = SingleStyleWalker;
+    function MultipleStylesWalker(styles) {
+        var flattenedSetters = [];
+        if (styles) {
+            var dps = [];
+            var stylesSeen = [];
+            var len = styles.length;
+            for (var i = 0; i < len; i++) {
+                var style = styles[i];
+                while (style) {
+                    if (stylesSeen.indexOf(style) > -1)
+                        continue;
+                    mergeSetters(flattenedSetters, dps, style);
+                    stylesSeen.push(style);
+                    style = style.BasedOn;
+                }
+            }
+            flattenedSetters.sort(Fayde.Setter.Compare);
+        }
+        return {
+            Step: function () {
+                return flattenedSetters.shift();
+            }
+        };
+    }
+    Fayde.MultipleStylesWalker = MultipleStylesWalker;
+    function DeepTreeWalker(topNode, direction) {
+        var last = undefined;
+        var dir = VisualTreeDirection.Logical;
+        var walkList = [topNode];
+        if (direction)
+            dir = direction;
+        return {
+            Step: function () {
+                if (last) {
+                    var enumerator = last.GetVisualTreeEnumerator();
+                    var insertIndex = 0;
+                    while (enumerator.moveNext()) {
+                        walkList.splice(insertIndex, 0, enumerator.current);
+                        insertIndex++;
+                    }
+                }
+                var next = walkList.shift();
+                if (!next) {
+                    last = undefined;
+                    return;
+                }
+                return (last = next);
+            },
+            SkipBranch: function () {
+                last = undefined;
+            }
+        };
+    }
+    Fayde.DeepTreeWalker = DeepTreeWalker;
+    function compare(left, right) {
+        if (!left)
+            return !right ? 0 : -1;
+        if (!right)
+            return 1;
+        var v1 = left.XObject.TabIndex;
+        var v2 = right.XObject.TabIndex;
+        if (v1 == null) {
+            return v2 != null ? -1 : 0;
+        }
+        else if (v2 == null) {
+            return 1;
+        }
+        if (v1 > v2)
+            return 1;
+        return v1 === v2 ? 0 : -1;
+    }
+    function getParentNavigationMode(uin) {
+        while (uin) {
+            if (uin instanceof Fayde.Controls.ControlNode)
+                return uin.XObject.TabNavigation;
+            return Fayde.Input.KeyboardNavigationMode.Local;
+        }
+        return Fayde.Input.KeyboardNavigationMode.Local;
+    }
+    function getActiveNavigationMode(uin) {
+        while (uin) {
+            if (uin instanceof Fayde.Controls.ControlNode)
+                return uin.XObject.TabNavigation;
+            uin = uin.VisualParentNode;
+        }
+        return Fayde.Input.KeyboardNavigationMode.Local;
+    }
+    function walkChildren(root, cur, forwards) {
+        var walker = new TabNavigationWalker(root, cur, forwards);
+        return walker.FocusChild();
+    }
+    var TabNavigationWalker = (function () {
+        function TabNavigationWalker(root, cur, forwards) {
+            this._Root = root;
+            this._Current = cur;
+            this._Forwards = forwards;
+            this._TabSorted = [];
+        }
+        TabNavigationWalker.prototype.FocusChild = function () {
+            var childNode;
+            var childIsControl;
+            var curIndex = -1;
+            var childWalker = DeepTreeWalker(this._Root);
+            while (childNode = childWalker.Step()) {
+                if (childNode === this._Root || !(childNode instanceof Fayde.Controls.ControlNode))
+                    continue;
+                this._TabSorted.push(childNode);
+                childWalker.SkipBranch();
+            }
+            if (this._TabSorted.length > 1) {
+                this._TabSorted.sort(compare);
+                if (!this._Forwards)
+                    this._TabSorted = this._TabSorted.reverse();
+            }
+            var len = this._TabSorted.length;
+            for (var i = 0; i < len; i++) {
+                if (this._TabSorted[i] === this._Current)
+                    curIndex = i;
+            }
+            if (curIndex !== -1 && getActiveNavigationMode(this._Root) === Fayde.Input.KeyboardNavigationMode.Once) {
+                if (!this._Forwards && this._Root instanceof Fayde.Controls.ControlNode)
+                    return this._Root.TabTo();
+                return false;
+            }
+            var len = this._TabSorted.length;
+            if (len > 0) {
+                for (var j = 0; j < len; j++) {
+                    if ((j + curIndex + 1) === len && getActiveNavigationMode(this._Root) !== Fayde.Input.KeyboardNavigationMode.Cycle)
+                        break;
+                    childNode = this._TabSorted[(j + curIndex + 1) % len];
+                    childIsControl = childNode instanceof Fayde.Controls.ControlNode;
+                    if (childIsControl && !childNode.XObject.IsEnabled)
+                        continue;
+                    if (!this._Forwards && walkChildren(childNode))
+                        return true;
+                    if (childIsControl && childNode.TabTo())
+                        return true;
+                    if (this._Forwards && walkChildren(childNode))
+                        return true;
+                }
+            }
+            if (curIndex !== -1 && !this._Forwards) {
+                if (this._Root instanceof Fayde.Controls.ControlNode)
+                    return this._Root.TabTo();
+            }
+            return false;
+        };
+        TabNavigationWalker.Focus = function (uin, forwards) {
+            var focused = false;
+            var cur = uin;
+            var root = uin;
+            if ((root.VisualParentNode && getParentNavigationMode(root.VisualParentNode) === Fayde.Input.KeyboardNavigationMode.Once)
+                || (!forwards && root && root.VisualParentNode)) {
+                while (root = root.VisualParentNode)
+                    if (root instanceof Fayde.Controls.ControlNode || !root.VisualParentNode)
+                        break;
+            }
+            do {
+                focused = focused || walkChildren(root, cur, forwards);
+                if (!focused && getActiveNavigationMode(root) === Fayde.Input.KeyboardNavigationMode.Cycle)
+                    return true;
+                cur = root;
+                root = root.VisualParentNode;
+                while (root && !(root instanceof Fayde.Controls.ControlNode) && root.VisualParentNode)
+                    root = root.VisualParentNode;
+            } while (!focused && root);
+            if (!focused)
+                focused = focused || walkChildren(cur, null, forwards);
+            return focused;
+        };
+        return TabNavigationWalker;
+    })();
+    Fayde.TabNavigationWalker = TabNavigationWalker;
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Data;
+    (function (Data) {
+        var convert = nullstone.convertAnyToType;
+        Data.WarnBrokenPath = false;
+        var Binding = (function () {
+            function Binding(obj) {
+                this.BindsDirectlyToSource = false;
+                this.NotifyOnValidationError = false;
+                this.ValidatesOnExceptions = false;
+                this.ValidatesOnDataErrors = false;
+                this.ValidatesOnNotifyDataErrors = true;
+                if (obj instanceof Binding) {
+                    var binding = obj;
+                    this.StringFormat = binding.StringFormat;
+                    this.FallbackValue = binding.FallbackValue;
+                    this.TargetNullValue = binding.TargetNullValue;
+                    this.BindsDirectlyToSource = binding.BindsDirectlyToSource;
+                    this.Converter = binding.Converter;
+                    this.ConverterParameter = binding.ConverterParameter;
+                    this.ConverterCulture = binding.ConverterCulture;
+                    this.ElementName = binding.ElementName;
+                    this.Mode = binding.Mode;
+                    this.NotifyOnValidationError = binding.NotifyOnValidationError;
+                    this.RelativeSource = binding.RelativeSource ? binding.RelativeSource.Clone() : null;
+                    this.Path = binding.Path;
+                    this.Source = binding.Source;
+                    this.UpdateSourceTrigger = binding.UpdateSourceTrigger;
+                    this.ValidatesOnExceptions = binding.ValidatesOnExceptions;
+                    this.ValidatesOnDataErrors = binding.ValidatesOnDataErrors;
+                    this.ValidatesOnNotifyDataErrors = binding.ValidatesOnNotifyDataErrors;
+                }
+                else if (typeof obj === "string") {
+                    this.Path = new Data.PropertyPath(obj);
+                }
+                else if (obj instanceof Data.PropertyPath) {
+                    this.Path = obj;
+                }
+                else {
+                    this.Path = new Data.PropertyPath("");
+                }
+            }
+            Binding.prototype.init = function (val) {
+                this.Path = new Data.PropertyPath(val);
+            };
+            Binding.prototype.transmute = function (os) {
+                this.$$coerce();
+                Object.freeze(this);
+                return new Data.BindingExpression(this);
+            };
+            Binding.prototype.$$coerce = function () {
+                this.StringFormat = this.StringFormat ? this.StringFormat.toString() : undefined;
+                this.BindsDirectlyToSource = convert(this.BindsDirectlyToSource, Boolean) || false;
+                this.Mode = Fayde.Enum.fromAny(Data.BindingMode, this.Mode);
+                this.NotifyOnValidationError = convert(this.NotifyOnValidationError, Boolean) || false;
+                this.Path = convert(this.Path, Data.PropertyPath);
+                this.UpdateSourceTrigger = Fayde.Enum.fromAny(Data.UpdateSourceTrigger, this.UpdateSourceTrigger);
+                this.ValidatesOnExceptions = convert(this.ValidatesOnExceptions, Boolean) || false;
+                this.ValidatesOnDataErrors = convert(this.ValidatesOnDataErrors, Boolean) || false;
+                this.ValidatesOnNotifyDataErrors = convert(this.ValidatesOnNotifyDataErrors, Boolean) !== false;
+            };
+            Binding.prototype.Clone = function () {
+                return new Binding(this);
+            };
+            Binding.fromData = function (data) {
+                var binding = new Binding(data.Path);
+                binding.StringFormat = data.StringFormat;
+                binding.FallbackValue = data.FallbackValue;
+                binding.TargetNullValue = data.TargetNullValue;
+                binding.BindsDirectlyToSource = data.BindsDirectlyToSource;
+                binding.Converter = data.Converter;
+                binding.ConverterParameter = data.ConverterParameter;
+                binding.ConverterCulture = data.ConverterCulture;
+                binding.ElementName = data.ElementName;
+                binding.Mode = data.Mode;
+                binding.NotifyOnValidationError = data.NotifyOnValidationError;
+                binding.RelativeSource = data.RelativeSource;
+                binding.Source = data.Source;
+                binding.UpdateSourceTrigger = data.UpdateSourceTrigger;
+                binding.ValidatesOnExceptions = data.ValidatesOnExceptions;
+                binding.ValidatesOnDataErrors = data.ValidatesOnDataErrors;
+                binding.ValidatesOnNotifyDataErrors = data.ValidatesOnNotifyDataErrors;
+                return binding;
+            };
+            return Binding;
+        })();
+        Data.Binding = Binding;
+        Fayde.CoreLibrary.add(Binding);
+    })(Data = Fayde.Data || (Fayde.Data = {}));
+})(Fayde || (Fayde = {}));
+/// <reference path="../Core/DependencyObject.ts" />
+var Fayde;
+(function (Fayde) {
+    var Data;
+    (function (Data) {
+        var CollectionViewSource = (function (_super) {
+            __extends(CollectionViewSource, _super);
+            function CollectionViewSource() {
+                _super.apply(this, arguments);
+            }
+            CollectionViewSource.SourceProperty = DependencyProperty.Register("Source", function () { return Object; }, CollectionViewSource);
+            CollectionViewSource.ViewProperty = DependencyProperty.Register("View", function () { return Data.ICollectionView_; }, CollectionViewSource);
+            return CollectionViewSource;
+        })(Fayde.DependencyObject);
+        Data.CollectionViewSource = CollectionViewSource;
+    })(Data = Fayde.Data || (Fayde.Data = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Data;
+    (function (Data) {
+        var DataErrorsChangedEventArgs = (function () {
+            function DataErrorsChangedEventArgs(propertyName) {
+                this.PropertyName = propertyName;
+                Object.freeze(this);
+            }
+            return DataErrorsChangedEventArgs;
+        })();
+        Data.DataErrorsChangedEventArgs = DataErrorsChangedEventArgs;
+    })(Data = Fayde.Data || (Fayde.Data = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Data;
+    (function (Data) {
+        (function (RelativeSourceMode) {
+            RelativeSourceMode[RelativeSourceMode["TemplatedParent"] = 0] = "TemplatedParent";
+            RelativeSourceMode[RelativeSourceMode["Self"] = 1] = "Self";
+            RelativeSourceMode[RelativeSourceMode["FindAncestor"] = 2] = "FindAncestor";
+            RelativeSourceMode[RelativeSourceMode["ItemsControlParent"] = 3] = "ItemsControlParent";
+        })(Data.RelativeSourceMode || (Data.RelativeSourceMode = {}));
+        var RelativeSourceMode = Data.RelativeSourceMode;
+        Fayde.CoreLibrary.addEnum(RelativeSourceMode, "RelativeSourceMode");
+        (function (BindingMode) {
+            BindingMode[BindingMode["OneWay"] = 0] = "OneWay";
+            BindingMode[BindingMode["TwoWay"] = 1] = "TwoWay";
+            BindingMode[BindingMode["OneTime"] = 2] = "OneTime";
+            BindingMode[BindingMode["OneWayToSource"] = 3] = "OneWayToSource";
+        })(Data.BindingMode || (Data.BindingMode = {}));
+        var BindingMode = Data.BindingMode;
+        Fayde.CoreLibrary.addEnum(BindingMode, "BindingMode");
+        (function (UpdateSourceTrigger) {
+            UpdateSourceTrigger[UpdateSourceTrigger["Default"] = 0] = "Default";
+            UpdateSourceTrigger[UpdateSourceTrigger["PropertyChanged"] = 1] = "PropertyChanged";
+            UpdateSourceTrigger[UpdateSourceTrigger["Explicit"] = 3] = "Explicit";
+        })(Data.UpdateSourceTrigger || (Data.UpdateSourceTrigger = {}));
+        var UpdateSourceTrigger = Data.UpdateSourceTrigger;
+        Fayde.CoreLibrary.addEnum(UpdateSourceTrigger, "UpdateSourceTrigger");
+    })(Data = Fayde.Data || (Fayde.Data = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Data;
+    (function (Data) {
+        Data.ICollectionView_ = new nullstone.Interface("ICollectionView");
+    })(Data = Fayde.Data || (Fayde.Data = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Data;
+    (function (Data) {
+        Data.IDataErrorInfo_ = new nullstone.Interface("IDataErrorInfo");
+    })(Data = Fayde.Data || (Fayde.Data = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Data;
+    (function (Data) {
+        Data.INotifyDataErrorInfo_ = new nullstone.Interface("INotifyDataErrorInfo");
+    })(Data = Fayde.Data || (Fayde.Data = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Data;
+    (function (Data) {
+        Data.IValueConverter_ = new nullstone.Interface("IValueConverter");
+    })(Data = Fayde.Data || (Fayde.Data = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Data;
+    (function (Data) {
+        var RelativeSource = (function () {
+            function RelativeSource(obj) {
+                this.AncestorType = null;
+                if (obj instanceof RelativeSource) {
+                    var rs = obj;
+                    this.Mode = rs.Mode;
+                    this.AncestorLevel = rs.AncestorLevel;
+                    this.AncestorType = rs.AncestorType;
+                }
+            }
+            RelativeSource.prototype.init = function (val) {
+                this.Mode = Data.RelativeSourceMode[val];
+            };
+            RelativeSource.prototype.resolveTypeFields = function (resolver) {
+                if (typeof this.AncestorType === "string")
+                    this.AncestorType = resolver(this.AncestorType);
+            };
+            RelativeSource.prototype.transmute = function (os) {
+                if (this.Mode == null && typeof this.AncestorType === "function") {
+                    this.Mode = Data.RelativeSourceMode.FindAncestor;
+                }
+                else {
+                    this.Mode = Fayde.Enum.fromAny(Data.RelativeSourceMode, this.Mode);
+                }
+                this.AncestorLevel = parseInt(this.AncestorLevel) || 1;
+                Object.freeze(this);
+                return this;
+            };
+            RelativeSource.prototype.Clone = function () {
+                return new RelativeSource(this);
+            };
+            RelativeSource.prototype.Find = function (target) {
+                switch (this.Mode) {
+                    case Data.RelativeSourceMode.Self:
+                        return target;
+                    case Data.RelativeSourceMode.TemplatedParent:
+                        return target.TemplateOwner;
+                    case Data.RelativeSourceMode.FindAncestor:
+                        return findAncestor(target, this);
+                    case Data.RelativeSourceMode.ItemsControlParent:
+                        return findItemsControlAncestor(target, this);
+                }
+            };
+            return RelativeSource;
+        })();
+        Data.RelativeSource = RelativeSource;
+        Fayde.CoreLibrary.add(RelativeSource);
+        function findAncestor(target, relSource) {
+            if (!(target instanceof Fayde.DependencyObject))
+                return;
+            var ancestorType = relSource.AncestorType;
+            if (typeof ancestorType !== "function") {
+                console.warn("RelativeSourceMode.FindAncestor with no AncestorType specified.");
+                return;
+            }
+            var ancestorLevel = relSource.AncestorLevel;
+            if (isNaN(ancestorLevel)) {
+                console.warn("RelativeSourceMode.FindAncestor with no AncestorLevel specified.");
+                return;
+            }
+            for (var parent = Fayde.VisualTreeHelper.GetParent(target); parent != null; parent = Fayde.VisualTreeHelper.GetParent(parent)) {
+                if (parent instanceof ancestorType && --ancestorLevel < 1)
+                    return parent;
+            }
+        }
+        function findItemsControlAncestor(target, relSource) {
+            if (!(target instanceof Fayde.DependencyObject))
+                return;
+            var ancestorLevel = relSource.AncestorLevel;
+            ancestorLevel = ancestorLevel || 1;
+            for (var parent = Fayde.VisualTreeHelper.GetParent(target); parent != null; parent = Fayde.VisualTreeHelper.GetParent(parent)) {
+                if (!!parent.IsItemsControl && --ancestorLevel < 1)
+                    return parent;
+            }
+        }
+    })(Data = Fayde.Data || (Fayde.Data = {}));
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
@@ -11800,266 +11831,6 @@ var Fayde;
         Documents.Underline = Underline;
         Fayde.CoreLibrary.add(Underline);
     })(Documents = Fayde.Documents || (Fayde.Documents = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Data;
-    (function (Data) {
-        var convert = nullstone.convertAnyToType;
-        Data.WarnBrokenPath = false;
-        var Binding = (function () {
-            function Binding(obj) {
-                this.BindsDirectlyToSource = false;
-                this.NotifyOnValidationError = false;
-                this.ValidatesOnExceptions = false;
-                this.ValidatesOnDataErrors = false;
-                this.ValidatesOnNotifyDataErrors = true;
-                if (obj instanceof Binding) {
-                    var binding = obj;
-                    this.StringFormat = binding.StringFormat;
-                    this.FallbackValue = binding.FallbackValue;
-                    this.TargetNullValue = binding.TargetNullValue;
-                    this.BindsDirectlyToSource = binding.BindsDirectlyToSource;
-                    this.Converter = binding.Converter;
-                    this.ConverterParameter = binding.ConverterParameter;
-                    this.ConverterCulture = binding.ConverterCulture;
-                    this.ElementName = binding.ElementName;
-                    this.Mode = binding.Mode;
-                    this.NotifyOnValidationError = binding.NotifyOnValidationError;
-                    this.RelativeSource = binding.RelativeSource ? binding.RelativeSource.Clone() : null;
-                    this.Path = binding.Path;
-                    this.Source = binding.Source;
-                    this.UpdateSourceTrigger = binding.UpdateSourceTrigger;
-                    this.ValidatesOnExceptions = binding.ValidatesOnExceptions;
-                    this.ValidatesOnDataErrors = binding.ValidatesOnDataErrors;
-                    this.ValidatesOnNotifyDataErrors = binding.ValidatesOnNotifyDataErrors;
-                }
-                else if (typeof obj === "string") {
-                    this.Path = new Data.PropertyPath(obj);
-                }
-                else if (obj instanceof Data.PropertyPath) {
-                    this.Path = obj;
-                }
-                else {
-                    this.Path = new Data.PropertyPath("");
-                }
-            }
-            Binding.prototype.init = function (val) {
-                this.Path = new Data.PropertyPath(val);
-            };
-            Binding.prototype.transmute = function (os) {
-                this.$$coerce();
-                Object.freeze(this);
-                return new Data.BindingExpression(this);
-            };
-            Binding.prototype.$$coerce = function () {
-                this.StringFormat = this.StringFormat ? this.StringFormat.toString() : undefined;
-                this.BindsDirectlyToSource = convert(this.BindsDirectlyToSource, Boolean) || false;
-                this.Mode = Fayde.Enum.fromAny(Data.BindingMode, this.Mode);
-                this.NotifyOnValidationError = convert(this.NotifyOnValidationError, Boolean) || false;
-                this.Path = convert(this.Path, Data.PropertyPath);
-                this.UpdateSourceTrigger = Fayde.Enum.fromAny(Data.UpdateSourceTrigger, this.UpdateSourceTrigger);
-                this.ValidatesOnExceptions = convert(this.ValidatesOnExceptions, Boolean) || false;
-                this.ValidatesOnDataErrors = convert(this.ValidatesOnDataErrors, Boolean) || false;
-                this.ValidatesOnNotifyDataErrors = convert(this.ValidatesOnNotifyDataErrors, Boolean) !== false;
-            };
-            Binding.prototype.Clone = function () {
-                return new Binding(this);
-            };
-            Binding.fromData = function (data) {
-                var binding = new Binding(data.Path);
-                binding.StringFormat = data.StringFormat;
-                binding.FallbackValue = data.FallbackValue;
-                binding.TargetNullValue = data.TargetNullValue;
-                binding.BindsDirectlyToSource = data.BindsDirectlyToSource;
-                binding.Converter = data.Converter;
-                binding.ConverterParameter = data.ConverterParameter;
-                binding.ConverterCulture = data.ConverterCulture;
-                binding.ElementName = data.ElementName;
-                binding.Mode = data.Mode;
-                binding.NotifyOnValidationError = data.NotifyOnValidationError;
-                binding.RelativeSource = data.RelativeSource;
-                binding.Source = data.Source;
-                binding.UpdateSourceTrigger = data.UpdateSourceTrigger;
-                binding.ValidatesOnExceptions = data.ValidatesOnExceptions;
-                binding.ValidatesOnDataErrors = data.ValidatesOnDataErrors;
-                binding.ValidatesOnNotifyDataErrors = data.ValidatesOnNotifyDataErrors;
-                return binding;
-            };
-            return Binding;
-        })();
-        Data.Binding = Binding;
-        Fayde.CoreLibrary.add(Binding);
-    })(Data = Fayde.Data || (Fayde.Data = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="../Core/DependencyObject.ts" />
-var Fayde;
-(function (Fayde) {
-    var Data;
-    (function (Data) {
-        var CollectionViewSource = (function (_super) {
-            __extends(CollectionViewSource, _super);
-            function CollectionViewSource() {
-                _super.apply(this, arguments);
-            }
-            CollectionViewSource.SourceProperty = DependencyProperty.Register("Source", function () { return Object; }, CollectionViewSource);
-            CollectionViewSource.ViewProperty = DependencyProperty.Register("View", function () { return Data.ICollectionView_; }, CollectionViewSource);
-            return CollectionViewSource;
-        })(Fayde.DependencyObject);
-        Data.CollectionViewSource = CollectionViewSource;
-    })(Data = Fayde.Data || (Fayde.Data = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Data;
-    (function (Data) {
-        var DataErrorsChangedEventArgs = (function () {
-            function DataErrorsChangedEventArgs(propertyName) {
-                this.PropertyName = propertyName;
-                Object.freeze(this);
-            }
-            return DataErrorsChangedEventArgs;
-        })();
-        Data.DataErrorsChangedEventArgs = DataErrorsChangedEventArgs;
-    })(Data = Fayde.Data || (Fayde.Data = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Data;
-    (function (Data) {
-        (function (RelativeSourceMode) {
-            RelativeSourceMode[RelativeSourceMode["TemplatedParent"] = 0] = "TemplatedParent";
-            RelativeSourceMode[RelativeSourceMode["Self"] = 1] = "Self";
-            RelativeSourceMode[RelativeSourceMode["FindAncestor"] = 2] = "FindAncestor";
-            RelativeSourceMode[RelativeSourceMode["ItemsControlParent"] = 3] = "ItemsControlParent";
-        })(Data.RelativeSourceMode || (Data.RelativeSourceMode = {}));
-        var RelativeSourceMode = Data.RelativeSourceMode;
-        Fayde.CoreLibrary.addEnum(RelativeSourceMode, "RelativeSourceMode");
-        (function (BindingMode) {
-            BindingMode[BindingMode["OneWay"] = 0] = "OneWay";
-            BindingMode[BindingMode["TwoWay"] = 1] = "TwoWay";
-            BindingMode[BindingMode["OneTime"] = 2] = "OneTime";
-            BindingMode[BindingMode["OneWayToSource"] = 3] = "OneWayToSource";
-        })(Data.BindingMode || (Data.BindingMode = {}));
-        var BindingMode = Data.BindingMode;
-        Fayde.CoreLibrary.addEnum(BindingMode, "BindingMode");
-        (function (UpdateSourceTrigger) {
-            UpdateSourceTrigger[UpdateSourceTrigger["Default"] = 0] = "Default";
-            UpdateSourceTrigger[UpdateSourceTrigger["PropertyChanged"] = 1] = "PropertyChanged";
-            UpdateSourceTrigger[UpdateSourceTrigger["Explicit"] = 3] = "Explicit";
-        })(Data.UpdateSourceTrigger || (Data.UpdateSourceTrigger = {}));
-        var UpdateSourceTrigger = Data.UpdateSourceTrigger;
-        Fayde.CoreLibrary.addEnum(UpdateSourceTrigger, "UpdateSourceTrigger");
-    })(Data = Fayde.Data || (Fayde.Data = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Data;
-    (function (Data) {
-        Data.ICollectionView_ = new nullstone.Interface("ICollectionView");
-    })(Data = Fayde.Data || (Fayde.Data = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Data;
-    (function (Data) {
-        Data.IDataErrorInfo_ = new nullstone.Interface("IDataErrorInfo");
-    })(Data = Fayde.Data || (Fayde.Data = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Data;
-    (function (Data) {
-        Data.INotifyDataErrorInfo_ = new nullstone.Interface("INotifyDataErrorInfo");
-    })(Data = Fayde.Data || (Fayde.Data = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Data;
-    (function (Data) {
-        Data.IValueConverter_ = new nullstone.Interface("IValueConverter");
-    })(Data = Fayde.Data || (Fayde.Data = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Data;
-    (function (Data) {
-        var RelativeSource = (function () {
-            function RelativeSource(obj) {
-                this.AncestorType = null;
-                if (obj instanceof RelativeSource) {
-                    var rs = obj;
-                    this.Mode = rs.Mode;
-                    this.AncestorLevel = rs.AncestorLevel;
-                    this.AncestorType = rs.AncestorType;
-                }
-            }
-            RelativeSource.prototype.init = function (val) {
-                this.Mode = Data.RelativeSourceMode[val];
-            };
-            RelativeSource.prototype.resolveTypeFields = function (resolver) {
-                if (typeof this.AncestorType === "string")
-                    this.AncestorType = resolver(this.AncestorType);
-            };
-            RelativeSource.prototype.transmute = function (os) {
-                if (this.Mode == null && typeof this.AncestorType === "function") {
-                    this.Mode = Data.RelativeSourceMode.FindAncestor;
-                }
-                else {
-                    this.Mode = Fayde.Enum.fromAny(Data.RelativeSourceMode, this.Mode);
-                }
-                this.AncestorLevel = parseInt(this.AncestorLevel) || 1;
-                Object.freeze(this);
-                return this;
-            };
-            RelativeSource.prototype.Clone = function () {
-                return new RelativeSource(this);
-            };
-            RelativeSource.prototype.Find = function (target) {
-                switch (this.Mode) {
-                    case Data.RelativeSourceMode.Self:
-                        return target;
-                    case Data.RelativeSourceMode.TemplatedParent:
-                        return target.TemplateOwner;
-                    case Data.RelativeSourceMode.FindAncestor:
-                        return findAncestor(target, this);
-                    case Data.RelativeSourceMode.ItemsControlParent:
-                        return findItemsControlAncestor(target, this);
-                }
-            };
-            return RelativeSource;
-        })();
-        Data.RelativeSource = RelativeSource;
-        Fayde.CoreLibrary.add(RelativeSource);
-        function findAncestor(target, relSource) {
-            if (!(target instanceof Fayde.DependencyObject))
-                return;
-            var ancestorType = relSource.AncestorType;
-            if (typeof ancestorType !== "function") {
-                console.warn("RelativeSourceMode.FindAncestor with no AncestorType specified.");
-                return;
-            }
-            var ancestorLevel = relSource.AncestorLevel;
-            if (isNaN(ancestorLevel)) {
-                console.warn("RelativeSourceMode.FindAncestor with no AncestorLevel specified.");
-                return;
-            }
-            for (var parent = Fayde.VisualTreeHelper.GetParent(target); parent != null; parent = Fayde.VisualTreeHelper.GetParent(parent)) {
-                if (parent instanceof ancestorType && --ancestorLevel < 1)
-                    return parent;
-            }
-        }
-        function findItemsControlAncestor(target, relSource) {
-            if (!(target instanceof Fayde.DependencyObject))
-                return;
-            var ancestorLevel = relSource.AncestorLevel;
-            ancestorLevel = ancestorLevel || 1;
-            for (var parent = Fayde.VisualTreeHelper.GetParent(target); parent != null; parent = Fayde.VisualTreeHelper.GetParent(parent)) {
-                if (!!parent.IsItemsControl && --ancestorLevel < 1)
-                    return parent;
-            }
-        }
-    })(Data = Fayde.Data || (Fayde.Data = {}));
 })(Fayde || (Fayde = {}));
 /// <reference path="../Core/DependencyObject" />
 var Fayde;
@@ -13766,38 +13537,6 @@ var Fayde;
         })(InteractionHelper = Input.InteractionHelper || (Input.InteractionHelper = {}));
     })(Input = Fayde.Input || (Fayde.Input = {}));
 })(Fayde || (Fayde = {}));
-/// <reference path="../Core/DependencyObject.ts" />
-var Fayde;
-(function (Fayde) {
-    var Input;
-    (function (Input) {
-        var KeyboardNavigation = (function () {
-            function KeyboardNavigation() {
-            }
-            KeyboardNavigation.GetAcceptsReturn = function (d) { return d.GetValue(KeyboardNavigation.AcceptsReturnProperty); };
-            KeyboardNavigation.SetAcceptsReturn = function (d, value) { d.SetValue(KeyboardNavigation.AcceptsReturnProperty, value); };
-            KeyboardNavigation.GetControlTabNavigation = function (d) { return d.GetValue(KeyboardNavigation.ControlTabNavigationProperty); };
-            KeyboardNavigation.SetControlTabNavigation = function (d, value) { d.SetValue(KeyboardNavigation.ControlTabNavigationProperty, value); };
-            KeyboardNavigation.GetDirectionalNavigation = function (d) { return d.GetValue(KeyboardNavigation.DirectionalNavigationProperty); };
-            KeyboardNavigation.SetDirectionalNavigation = function (d, value) { d.SetValue(KeyboardNavigation.DirectionalNavigationProperty, value); };
-            KeyboardNavigation.GetIsTabStop = function (d) { return d.GetValue(KeyboardNavigation.IsTabStopProperty); };
-            KeyboardNavigation.SetIsTabStop = function (d, value) { d.SetValue(KeyboardNavigation.IsTabStopProperty, value); };
-            KeyboardNavigation.GetTabIndex = function (d) { return d.GetValue(KeyboardNavigation.TabIndexProperty); };
-            KeyboardNavigation.SetTabIndex = function (d, value) { d.SetValue(KeyboardNavigation.TabIndexProperty, value); };
-            KeyboardNavigation.GetTabNavigation = function (d) { return d.GetValue(KeyboardNavigation.TabNavigationProperty); };
-            KeyboardNavigation.SetTabNavigation = function (d, value) { d.SetValue(KeyboardNavigation.TabNavigationProperty, value); };
-            KeyboardNavigation.AcceptsReturnProperty = DependencyProperty.RegisterAttached("AcceptsReturn", function () { return Boolean; }, KeyboardNavigation);
-            KeyboardNavigation.ControlTabNavigationProperty = DependencyProperty.RegisterAttached("ControlTabNavigation", function () { return new Fayde.Enum(Input.KeyboardNavigationMode); }, KeyboardNavigation);
-            KeyboardNavigation.DirectionalNavigationProperty = DependencyProperty.RegisterAttached("DirectionalNavigation", function () { return new Fayde.Enum(Input.KeyboardNavigationMode); }, KeyboardNavigation);
-            KeyboardNavigation.IsTabStopProperty = DependencyProperty.RegisterAttached("IsTabStop", function () { return Boolean; }, KeyboardNavigation);
-            KeyboardNavigation.TabIndexProperty = DependencyProperty.RegisterAttached("TabIndex", function () { return Number; }, KeyboardNavigation);
-            KeyboardNavigation.TabNavigationProperty = DependencyProperty.RegisterAttached("TabNavigation", function () { return new Fayde.Enum(Input.KeyboardNavigationMode); }, KeyboardNavigation);
-            return KeyboardNavigation;
-        })();
-        Input.KeyboardNavigation = KeyboardNavigation;
-        Fayde.CoreLibrary.add(KeyboardNavigation);
-    })(Input = Fayde.Input || (Fayde.Input = {}));
-})(Fayde || (Fayde = {}));
 /// <reference path="KeyEventArgs.ts" />
 var Fayde;
 (function (Fayde) {
@@ -14048,6 +13787,38 @@ var Fayde;
             };
             return NetscapeKeyInterop;
         })(KeyInterop);
+    })(Input = Fayde.Input || (Fayde.Input = {}));
+})(Fayde || (Fayde = {}));
+/// <reference path="../Core/DependencyObject.ts" />
+var Fayde;
+(function (Fayde) {
+    var Input;
+    (function (Input) {
+        var KeyboardNavigation = (function () {
+            function KeyboardNavigation() {
+            }
+            KeyboardNavigation.GetAcceptsReturn = function (d) { return d.GetValue(KeyboardNavigation.AcceptsReturnProperty); };
+            KeyboardNavigation.SetAcceptsReturn = function (d, value) { d.SetValue(KeyboardNavigation.AcceptsReturnProperty, value); };
+            KeyboardNavigation.GetControlTabNavigation = function (d) { return d.GetValue(KeyboardNavigation.ControlTabNavigationProperty); };
+            KeyboardNavigation.SetControlTabNavigation = function (d, value) { d.SetValue(KeyboardNavigation.ControlTabNavigationProperty, value); };
+            KeyboardNavigation.GetDirectionalNavigation = function (d) { return d.GetValue(KeyboardNavigation.DirectionalNavigationProperty); };
+            KeyboardNavigation.SetDirectionalNavigation = function (d, value) { d.SetValue(KeyboardNavigation.DirectionalNavigationProperty, value); };
+            KeyboardNavigation.GetIsTabStop = function (d) { return d.GetValue(KeyboardNavigation.IsTabStopProperty); };
+            KeyboardNavigation.SetIsTabStop = function (d, value) { d.SetValue(KeyboardNavigation.IsTabStopProperty, value); };
+            KeyboardNavigation.GetTabIndex = function (d) { return d.GetValue(KeyboardNavigation.TabIndexProperty); };
+            KeyboardNavigation.SetTabIndex = function (d, value) { d.SetValue(KeyboardNavigation.TabIndexProperty, value); };
+            KeyboardNavigation.GetTabNavigation = function (d) { return d.GetValue(KeyboardNavigation.TabNavigationProperty); };
+            KeyboardNavigation.SetTabNavigation = function (d, value) { d.SetValue(KeyboardNavigation.TabNavigationProperty, value); };
+            KeyboardNavigation.AcceptsReturnProperty = DependencyProperty.RegisterAttached("AcceptsReturn", function () { return Boolean; }, KeyboardNavigation);
+            KeyboardNavigation.ControlTabNavigationProperty = DependencyProperty.RegisterAttached("ControlTabNavigation", function () { return new Fayde.Enum(Input.KeyboardNavigationMode); }, KeyboardNavigation);
+            KeyboardNavigation.DirectionalNavigationProperty = DependencyProperty.RegisterAttached("DirectionalNavigation", function () { return new Fayde.Enum(Input.KeyboardNavigationMode); }, KeyboardNavigation);
+            KeyboardNavigation.IsTabStopProperty = DependencyProperty.RegisterAttached("IsTabStop", function () { return Boolean; }, KeyboardNavigation);
+            KeyboardNavigation.TabIndexProperty = DependencyProperty.RegisterAttached("TabIndex", function () { return Number; }, KeyboardNavigation);
+            KeyboardNavigation.TabNavigationProperty = DependencyProperty.RegisterAttached("TabNavigation", function () { return new Fayde.Enum(Input.KeyboardNavigationMode); }, KeyboardNavigation);
+            return KeyboardNavigation;
+        })();
+        Input.KeyboardNavigation = KeyboardNavigation;
+        Fayde.CoreLibrary.add(KeyboardNavigation);
     })(Input = Fayde.Input || (Fayde.Input = {}));
 })(Fayde || (Fayde = {}));
 /// <reference path="../Core/RoutedEventArgs.ts" />
@@ -16235,157 +16006,6 @@ var Fayde;
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
-    var Markup;
-    (function (Markup) {
-        Markup.IEventFilter_ = new nullstone.Interface("IEventFilter");
-        var EventBinding = (function () {
-            function EventBinding() {
-                this.CommandPath = null;
-                this.Command = null;
-                this.CommandParameter = null;
-                this.CommandBinding = null;
-                this.CommandParameterBinding = null;
-                this.Filter = null;
-            }
-            EventBinding.prototype.init = function (val) {
-                this.CommandPath = val;
-            };
-            EventBinding.prototype.transmute = function (os) {
-                this.$$coerce();
-                Object.freeze(this);
-                return new Fayde.EventBindingExpression(this);
-            };
-            EventBinding.prototype.$$coerce = function () {
-                if (this.Command) {
-                    this.CommandBinding = this.Command.ParentBinding.Clone();
-                    this.Command = null;
-                }
-                if (this.CommandPath) {
-                    this.CommandBinding = new Fayde.Data.Binding(this.CommandPath);
-                }
-                if (this.CommandParameter) {
-                    this.CommandParameterBinding = this.CommandParameter.ParentBinding.Clone();
-                    this.CommandParameter = null;
-                }
-            };
-            return EventBinding;
-        })();
-        Markup.EventBinding = EventBinding;
-        Fayde.CoreLibrary.add(EventBinding);
-    })(Markup = Fayde.Markup || (Fayde.Markup = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Markup;
-    (function (Markup) {
-        function Resolve(uri, excludeUri) {
-            return Markup.Retrieve(uri)
-                .tap(function (xm) {
-                var co = collector.create(excludeUri);
-                return Promise.all([
-                    xm.resolve(Fayde.TypeManager, co.collect, co.exclude),
-                    co.resolve()
-                ]);
-            });
-        }
-        Markup.Resolve = Resolve;
-        var collector;
-        (function (collector) {
-            function create(excludeUri) {
-                var rduris = [];
-                var coll = {
-                    collect: function (ownerUri, ownerName, propName, val) {
-                        if (ownerUri === Fayde.XMLNS && ownerName === "ResourceDictionary" && propName === "Source")
-                            rduris.push(val);
-                    },
-                    exclude: function (uri, name) {
-                        return false;
-                    },
-                    resolve: function () {
-                        return Promise.all(rduris.map(Resolve));
-                    }
-                };
-                if (!!excludeUri)
-                    coll.exclude = function (uri, name) { return excludeUri.toString() === uri; };
-                return coll;
-            }
-            collector.create = create;
-        })(collector || (collector = {}));
-    })(Markup = Fayde.Markup || (Fayde.Markup = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Markup;
-    (function (Markup) {
-        var XamlMarkup = nullstone.markup.xaml.XamlMarkup;
-        function Retrieve(uri) {
-            var xm = XamlMarkup.create(uri);
-            if (xm.isLoaded)
-                return Promise.resolve(xm);
-            return xm.loadAsync();
-        }
-        Markup.Retrieve = Retrieve;
-    })(Markup = Fayde.Markup || (Fayde.Markup = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Markup;
-    (function (Markup) {
-        var StaticResource = (function () {
-            function StaticResource() {
-            }
-            StaticResource.prototype.init = function (val) {
-                this.ResourceKey = val;
-            };
-            StaticResource.prototype.transmute = function (os) {
-                var res = this.$$resources;
-                this.$$resources = undefined;
-                var key = this.ResourceKey;
-                var rd;
-                for (var i = os.length - 1; i >= 0; i--) {
-                    var cur = os[i];
-                    if (cur instanceof Fayde.FrameworkElement) {
-                        rd = cur.ReadLocalValue(Fayde.FrameworkElement.ResourcesProperty);
-                        if (rd === DependencyProperty.UnsetValue)
-                            rd = undefined;
-                    }
-                    else if (cur instanceof Fayde.Application) {
-                        rd = cur.Resources;
-                    }
-                    else if (cur instanceof Fayde.ResourceDictionary) {
-                        rd = cur;
-                    }
-                    var o = rd ? rd.Get(key) : undefined;
-                    if (o !== undefined)
-                        return o;
-                }
-                for (var i = res ? (res.length - 1) : -1; i >= 0; i--) {
-                    var o = res[i].Get(key);
-                    if (o !== undefined)
-                        return o;
-                }
-                if (this.$$app) {
-                    var rd = this.$$app.Resources;
-                    if (rd) {
-                        var o = rd.Get(key);
-                        if (o !== undefined)
-                            return o;
-                    }
-                }
-                throw new Error("Could not resolve StaticResource: '" + key + "'.");
-            };
-            StaticResource.prototype.setContext = function (app, resources) {
-                this.$$app = app;
-                this.$$resources = resources;
-            };
-            return StaticResource;
-        })();
-        Markup.StaticResource = StaticResource;
-        Fayde.CoreLibrary.add(StaticResource);
-    })(Markup = Fayde.Markup || (Fayde.Markup = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
     var MVVM;
     (function (MVVM) {
         function AutoModel(typeOrModel) {
@@ -16722,6 +16342,157 @@ var Fayde;
         Fayde.CoreLibrary.add(RelayCommand);
         nullstone.addTypeInterfaces(RelayCommand, Fayde.Input.ICommand_);
     })(MVVM = Fayde.MVVM || (Fayde.MVVM = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Markup;
+    (function (Markup) {
+        Markup.IEventFilter_ = new nullstone.Interface("IEventFilter");
+        var EventBinding = (function () {
+            function EventBinding() {
+                this.CommandPath = null;
+                this.Command = null;
+                this.CommandParameter = null;
+                this.CommandBinding = null;
+                this.CommandParameterBinding = null;
+                this.Filter = null;
+            }
+            EventBinding.prototype.init = function (val) {
+                this.CommandPath = val;
+            };
+            EventBinding.prototype.transmute = function (os) {
+                this.$$coerce();
+                Object.freeze(this);
+                return new Fayde.EventBindingExpression(this);
+            };
+            EventBinding.prototype.$$coerce = function () {
+                if (this.Command) {
+                    this.CommandBinding = this.Command.ParentBinding.Clone();
+                    this.Command = null;
+                }
+                if (this.CommandPath) {
+                    this.CommandBinding = new Fayde.Data.Binding(this.CommandPath);
+                }
+                if (this.CommandParameter) {
+                    this.CommandParameterBinding = this.CommandParameter.ParentBinding.Clone();
+                    this.CommandParameter = null;
+                }
+            };
+            return EventBinding;
+        })();
+        Markup.EventBinding = EventBinding;
+        Fayde.CoreLibrary.add(EventBinding);
+    })(Markup = Fayde.Markup || (Fayde.Markup = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Markup;
+    (function (Markup) {
+        function Resolve(uri, excludeUri) {
+            return Markup.Retrieve(uri)
+                .tap(function (xm) {
+                var co = collector.create(excludeUri);
+                return Promise.all([
+                    xm.resolve(Fayde.TypeManager, co.collect, co.exclude),
+                    co.resolve()
+                ]);
+            });
+        }
+        Markup.Resolve = Resolve;
+        var collector;
+        (function (collector) {
+            function create(excludeUri) {
+                var rduris = [];
+                var coll = {
+                    collect: function (ownerUri, ownerName, propName, val) {
+                        if (ownerUri === Fayde.XMLNS && ownerName === "ResourceDictionary" && propName === "Source")
+                            rduris.push(val);
+                    },
+                    exclude: function (uri, name) {
+                        return false;
+                    },
+                    resolve: function () {
+                        return Promise.all(rduris.map(Resolve));
+                    }
+                };
+                if (!!excludeUri)
+                    coll.exclude = function (uri, name) { return excludeUri.toString() === uri; };
+                return coll;
+            }
+            collector.create = create;
+        })(collector || (collector = {}));
+    })(Markup = Fayde.Markup || (Fayde.Markup = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Markup;
+    (function (Markup) {
+        var XamlMarkup = nullstone.markup.xaml.XamlMarkup;
+        function Retrieve(uri) {
+            var xm = XamlMarkup.create(uri);
+            if (xm.isLoaded)
+                return Promise.resolve(xm);
+            return xm.loadAsync();
+        }
+        Markup.Retrieve = Retrieve;
+    })(Markup = Fayde.Markup || (Fayde.Markup = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Markup;
+    (function (Markup) {
+        var StaticResource = (function () {
+            function StaticResource() {
+            }
+            StaticResource.prototype.init = function (val) {
+                this.ResourceKey = val;
+            };
+            StaticResource.prototype.transmute = function (os) {
+                var res = this.$$resources;
+                this.$$resources = undefined;
+                var key = this.ResourceKey;
+                var rd;
+                for (var i = os.length - 1; i >= 0; i--) {
+                    var cur = os[i];
+                    if (cur instanceof Fayde.FrameworkElement) {
+                        rd = cur.ReadLocalValue(Fayde.FrameworkElement.ResourcesProperty);
+                        if (rd === DependencyProperty.UnsetValue)
+                            rd = undefined;
+                    }
+                    else if (cur instanceof Fayde.Application) {
+                        rd = cur.Resources;
+                    }
+                    else if (cur instanceof Fayde.ResourceDictionary) {
+                        rd = cur;
+                    }
+                    var o = rd ? rd.Get(key) : undefined;
+                    if (o !== undefined)
+                        return o;
+                }
+                for (var i = res ? (res.length - 1) : -1; i >= 0; i--) {
+                    var o = res[i].Get(key);
+                    if (o !== undefined)
+                        return o;
+                }
+                if (this.$$app) {
+                    var rd = this.$$app.Resources;
+                    if (rd) {
+                        var o = rd.Get(key);
+                        if (o !== undefined)
+                            return o;
+                    }
+                }
+                throw new Error("Could not resolve StaticResource: '" + key + "'.");
+            };
+            StaticResource.prototype.setContext = function (app, resources) {
+                this.$$app = app;
+                this.$$resources = resources;
+            };
+            return StaticResource;
+        })();
+        Markup.StaticResource = StaticResource;
+        Fayde.CoreLibrary.add(StaticResource);
+    })(Markup = Fayde.Markup || (Fayde.Markup = {}));
 })(Fayde || (Fayde = {}));
 /// <reference path="../Core/DependencyObject.ts" />
 var Fayde;
@@ -17194,6 +16965,32 @@ var Fayde;
         Fayde.CoreLibrary.add(GradientStopCollection);
     })(Media = Fayde.Media || (Fayde.Media = {}));
 })(Fayde || (Fayde = {}));
+/// <reference path="Geometry.ts" />
+var Fayde;
+(function (Fayde) {
+    var Media;
+    (function (Media) {
+        var LineGeometry = (function (_super) {
+            __extends(LineGeometry, _super);
+            function LineGeometry() {
+                _super.apply(this, arguments);
+            }
+            LineGeometry.prototype._Build = function () {
+                var p1 = this.StartPoint;
+                var p2 = this.EndPoint;
+                var p = new minerva.path.Path();
+                p.move(p1.x, p1.y);
+                p.line(p2.x, p2.y);
+                return p;
+            };
+            LineGeometry.StartPointProperty = DependencyProperty.Register("StartPoint", function () { return Point; }, LineGeometry, undefined, function (d, args) { return d.InvalidateGeometry(); });
+            LineGeometry.EndPointProperty = DependencyProperty.Register("EndPoint", function () { return Point; }, LineGeometry, undefined, function (d, args) { return d.InvalidateGeometry(); });
+            return LineGeometry;
+        })(Media.Geometry);
+        Media.LineGeometry = LineGeometry;
+        Fayde.CoreLibrary.add(LineGeometry);
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+})(Fayde || (Fayde = {}));
 /// <reference path="GradientBrush.ts" />
 var Fayde;
 (function (Fayde) {
@@ -17267,32 +17064,6 @@ var Fayde;
         })(Media.GradientBrush);
         Media.LinearGradientBrush = LinearGradientBrush;
         Fayde.CoreLibrary.add(LinearGradientBrush);
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="Geometry.ts" />
-var Fayde;
-(function (Fayde) {
-    var Media;
-    (function (Media) {
-        var LineGeometry = (function (_super) {
-            __extends(LineGeometry, _super);
-            function LineGeometry() {
-                _super.apply(this, arguments);
-            }
-            LineGeometry.prototype._Build = function () {
-                var p1 = this.StartPoint;
-                var p2 = this.EndPoint;
-                var p = new minerva.path.Path();
-                p.move(p1.x, p1.y);
-                p.line(p2.x, p2.y);
-                return p;
-            };
-            LineGeometry.StartPointProperty = DependencyProperty.Register("StartPoint", function () { return Point; }, LineGeometry, undefined, function (d, args) { return d.InvalidateGeometry(); });
-            LineGeometry.EndPointProperty = DependencyProperty.Register("EndPoint", function () { return Point; }, LineGeometry, undefined, function (d, args) { return d.InvalidateGeometry(); });
-            return LineGeometry;
-        })(Media.Geometry);
-        Media.LineGeometry = LineGeometry;
-        Fayde.CoreLibrary.add(LineGeometry);
     })(Media = Fayde.Media || (Fayde.Media = {}));
 })(Fayde || (Fayde = {}));
 var Fayde;
@@ -19984,6 +19755,320 @@ var Fayde;
     }
     Fayde.splitCommaList = splitCommaList;
 })(Fayde || (Fayde = {}));
+var BError = (function () {
+    function BError() {
+    }
+    BError.prototype.ThrowException = function () {
+        var ex;
+        switch (this.Number) {
+            case BError.Attach:
+                ex = new AttachException(this.Message, this.Data);
+                break;
+            case BError.Argument:
+                ex = new ArgumentException(this.Message);
+                break;
+            case BError.InvalidOperation:
+                ex = new InvalidOperationException(this.Message);
+                break;
+            case BError.XamlParse:
+                ex = new XamlParseException(this.Message);
+                break;
+            default:
+                ex = new Exception(this.Message);
+                break;
+        }
+        throw ex;
+    };
+    BError.Argument = 2;
+    BError.InvalidOperation = 3;
+    BError.XamlParse = 5;
+    BError.Attach = 6;
+    return BError;
+})();
+var Fayde;
+(function (Fayde) {
+    function Bootstrap(onLoaded) {
+        var url = document.body.getAttribute("fayde-app");
+        if (!url) {
+            console.warn("No application specified.");
+            return;
+        }
+        var canvas = document.getElementsByTagName("canvas")[0];
+        if (!canvas)
+            document.body.appendChild(canvas = document.createElement("canvas"));
+        bootstrap(url, canvas, onLoaded);
+    }
+    Fayde.Bootstrap = Bootstrap;
+    function bootstrap(url, canvas, onLoaded) {
+        var app;
+        function resolveConfig() {
+            perfex.phases.start('ResolveConfig');
+            return new Promise(function (resolve, reject) {
+                Fayde.LoadConfigJson(function (config, err) {
+                    if (err)
+                        console.warn('Could not load fayde configuration file.', err);
+                    resolve();
+                });
+            });
+        }
+        function getApp() {
+            perfex.phases.start('RetrieveApp');
+            return Fayde.Markup.Retrieve(url);
+        }
+        function resolveTheme(markup) {
+            perfex.phases.start('ResolveTheme');
+            var root = markup.root;
+            var themeName = root.getAttribute("ThemeName") || Fayde.DEFAULT_THEME_NAME;
+            return Fayde.ThemeManager.LoadAsync(themeName);
+        }
+        function resolveApp() {
+            perfex.phases.start('ResolveApp');
+            return Fayde.Application.GetAsync(url)
+                .then(function (result) { return Fayde.Application.Current = app = result; });
+        }
+        function finishError(err) {
+            console.error("An error occurred retrieving the application.", err);
+        }
+        function startApp() {
+            perfex.phases.start('StartApp');
+            app.Attach(canvas);
+            app.Start();
+            loaded();
+        }
+        function loaded() {
+            onLoaded && onLoaded(app);
+            perfex.phases.start('Running');
+        }
+        resolveConfig()
+            .then(getApp, finishError)
+            .then(resolveTheme, finishError)
+            .then(resolveApp, finishError)
+            .then(startApp, finishError);
+    }
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var jsonFile = 'fayde.json';
+    function LoadConfigJson(onComplete) {
+        require(['text!' + jsonFile], function (jsontext) { return configure(jsontext, onComplete); }, function (err) { return onComplete(err); });
+    }
+    Fayde.LoadConfigJson = LoadConfigJson;
+    function configure(jsontext, onComplete) {
+        var json;
+        try {
+            json = JSON.parse(jsontext);
+        }
+        catch (err) {
+            return onComplete(null, err);
+        }
+        if (json) {
+            libs.configure(json.libs || {});
+            themes.configure(json.themes || {});
+            debug.configure(json.debug || {});
+        }
+        onComplete(json);
+    }
+    var libs;
+    (function (libs_1) {
+        function configure(json) {
+            var libs = [];
+            for (var libName in json) {
+                libs.push(getLibConfig(libName, json[libName]));
+            }
+            for (var i = 0; i < libs.length; i++) {
+                setupLibraryConfig(libs[i]);
+            }
+        }
+        libs_1.configure = configure;
+        function getLibConfig(libName, libJson) {
+            return {
+                name: libName,
+                path: libJson.path,
+                base: libJson.base,
+                deps: libJson.deps,
+                exports: libJson.exports,
+                useMin: libJson.useMin
+            };
+        }
+        function setupLibraryConfig(lib) {
+            var uri = new Fayde.Uri(lib.name);
+            if (uri.scheme !== "http")
+                uri = new Fayde.Uri("lib://" + lib.name);
+            var library = Fayde.TypeManager.resolveLibrary(uri.toString());
+            if (!!lib.path)
+                library.sourcePath = lib.path;
+            if (!!lib.base)
+                library.basePath = lib.base;
+            if (!!lib.exports)
+                library.exports = lib.exports;
+            if (!!lib.deps)
+                library.deps = lib.deps;
+            library.useMin = (lib.useMin === true);
+            library.$configModule();
+        }
+    })(libs || (libs = {}));
+    var themes;
+    (function (themes) {
+        function configure(json) {
+            for (var libName in json) {
+                var co = json[libName];
+                var path = co === "none" ? null : (co.path ? co.path : undefined);
+                Fayde.ThemeConfig.Set(libName, path);
+            }
+        }
+        themes.configure = configure;
+    })(themes || (themes = {}));
+    var debug;
+    (function (debug) {
+        function configure(json) {
+            if (toBoolean(json.warnMissingThemes))
+                Fayde.Theme.WarnMissing = true;
+            if (toBoolean(json.warnBrokenPath))
+                Fayde.Data.WarnBrokenPath = true;
+        }
+        debug.configure = configure;
+        function toBoolean(val) {
+            return val === "true"
+                || val === true;
+        }
+    })(debug || (debug = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Render;
+    (function (Render) {
+        Render.Debug = false;
+        Render.DebugIndent = 0;
+    })(Render = Fayde.Render || (Fayde.Render = {}));
+    var Layout;
+    (function (Layout) {
+        Layout.Debug = false;
+        Layout.DebugIndent = 0;
+    })(Layout = Fayde.Layout || (Fayde.Layout = {}));
+    var Media;
+    (function (Media) {
+        var Animation;
+        (function (Animation) {
+            Animation.Log = false;
+            Animation.LogApply = false;
+        })(Animation = Media.Animation || (Media.Animation = {}));
+        var VSM;
+        (function (VSM) {
+            VSM.Debug = false;
+        })(VSM = Media.VSM || (Media.VSM = {}));
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+    var Data;
+    (function (Data) {
+        Data.Debug = false;
+        Data.IsCounterEnabled = false;
+        Data.DataContextCounter = 0;
+    })(Data = Fayde.Data || (Fayde.Data = {}));
+    Fayde.IsInspectionOn = false;
+})(Fayde || (Fayde = {}));
+var NumberEx;
+(function (NumberEx) {
+    var epsilon = 1.192093E-07;
+    var adjustment = 10;
+    function AreClose(val1, val2) {
+        if (val1 === val2)
+            return true;
+        var softdiff = (Math.abs(val1) + Math.abs(val2) + adjustment) * epsilon;
+        var diff = val1 - val2;
+        return -softdiff < diff && diff < softdiff;
+    }
+    NumberEx.AreClose = AreClose;
+    function IsLessThanClose(val1, val2) {
+        return val1 > val2 || !AreClose(val1, val2);
+    }
+    NumberEx.IsLessThanClose = IsLessThanClose;
+    function IsGreaterThanClose(val1, val2) {
+        return val1 > val2 || !AreClose(val1, val2);
+    }
+    NumberEx.IsGreaterThanClose = IsGreaterThanClose;
+})(NumberEx || (NumberEx = {}));
+var StringEx;
+(function (StringEx) {
+    function Format(format) {
+        var items = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            items[_i - 1] = arguments[_i];
+        }
+        var args = arguments;
+        return format.replace(/{(\d+)}/g, function (match) {
+            var matches = [];
+            for (var _i = 1; _i < arguments.length; _i++) {
+                matches[_i - 1] = arguments[_i];
+            }
+            var i = parseInt(matches[0]);
+            return typeof items[i] != 'undefined'
+                ? items[i]
+                : match;
+        });
+    }
+    StringEx.Format = Format;
+})(StringEx || (StringEx = {}));
+var TimelineProfile = (function () {
+    function TimelineProfile() {
+    }
+    TimelineProfile.Parse = function (isStart, name) {
+        if (!isStart)
+            return TimelineProfile._FinishEvent("Parse", name);
+        TimelineProfile._Events.push({
+            Type: "Parse",
+            Name: name,
+            Time: new Date().valueOf()
+        });
+    };
+    TimelineProfile.Navigate = function (isStart, name) {
+        if (!isStart)
+            return TimelineProfile._FinishEvent("Navigate", name);
+        TimelineProfile._Events.push({
+            Type: "Navigate",
+            Name: name,
+            Time: new Date().valueOf(),
+        });
+    };
+    TimelineProfile.LayoutPass = function (isStart) {
+        if (!TimelineProfile.IsNextLayoutPassProfiled)
+            return;
+        if (!isStart) {
+            TimelineProfile.IsNextLayoutPassProfiled = false;
+            return TimelineProfile._FinishEvent("LayoutPass");
+        }
+        TimelineProfile._Events.push({
+            Type: "LayoutPass",
+            Name: "",
+            Time: new Date().valueOf(),
+        });
+    };
+    TimelineProfile._FinishEvent = function (type, name) {
+        var evts = TimelineProfile._Events;
+        var len = evts.length;
+        var evt;
+        for (var i = len - 1; i >= 0; i--) {
+            evt = evts[i];
+            if (evt.Type === type && (!name || evt.Name === name)) {
+                evts.splice(i, 1);
+                break;
+            }
+            evt = null;
+        }
+        if (!evt)
+            return;
+        TimelineProfile.Groups.push({
+            Type: evt.Type,
+            Data: evt.Name,
+            Start: evt.Time - TimelineProfile.TimelineStart,
+            Length: new Date().valueOf() - evt.Time
+        });
+    };
+    TimelineProfile._Events = [];
+    TimelineProfile.Groups = [];
+    TimelineProfile.TimelineStart = 0;
+    TimelineProfile.IsNextLayoutPassProfiled = true;
+    return TimelineProfile;
+})();
+TimelineProfile.TimelineStart = new Date().valueOf();
 /// <reference path="../Core/XamlObjectCollection.ts" />
 var Fayde;
 (function (Fayde) {
@@ -20338,489 +20423,6 @@ var Fayde;
         })(reactions || (reactions = {}));
     })(Shapes = Fayde.Shapes || (Fayde.Shapes = {}));
 })(Fayde || (Fayde = {}));
-var BError = (function () {
-    function BError() {
-    }
-    BError.prototype.ThrowException = function () {
-        var ex;
-        switch (this.Number) {
-            case BError.Attach:
-                ex = new AttachException(this.Message, this.Data);
-                break;
-            case BError.Argument:
-                ex = new ArgumentException(this.Message);
-                break;
-            case BError.InvalidOperation:
-                ex = new InvalidOperationException(this.Message);
-                break;
-            case BError.XamlParse:
-                ex = new XamlParseException(this.Message);
-                break;
-            default:
-                ex = new Exception(this.Message);
-                break;
-        }
-        throw ex;
-    };
-    BError.Argument = 2;
-    BError.InvalidOperation = 3;
-    BError.XamlParse = 5;
-    BError.Attach = 6;
-    return BError;
-})();
-var Fayde;
-(function (Fayde) {
-    function Bootstrap(onLoaded) {
-        var url = document.body.getAttribute("fayde-app");
-        if (!url) {
-            console.warn("No application specified.");
-            return;
-        }
-        var canvas = document.getElementsByTagName("canvas")[0];
-        if (!canvas)
-            document.body.appendChild(canvas = document.createElement("canvas"));
-        bootstrap(url, canvas, onLoaded);
-    }
-    Fayde.Bootstrap = Bootstrap;
-    function bootstrap(url, canvas, onLoaded) {
-        var app;
-        function resolveConfig() {
-            perfex.phases.start('ResolveConfig');
-            return new Promise(function (resolve, reject) {
-                Fayde.LoadConfigJson(function (config, err) {
-                    if (err)
-                        console.warn('Could not load fayde configuration file.', err);
-                    resolve();
-                });
-            });
-        }
-        function getApp() {
-            perfex.phases.start('RetrieveApp');
-            return Fayde.Markup.Retrieve(url);
-        }
-        function resolveTheme(markup) {
-            perfex.phases.start('ResolveTheme');
-            var root = markup.root;
-            var themeName = root.getAttribute("ThemeName") || Fayde.DEFAULT_THEME_NAME;
-            return Fayde.ThemeManager.LoadAsync(themeName);
-        }
-        function resolveApp() {
-            perfex.phases.start('ResolveApp');
-            return Fayde.Application.GetAsync(url)
-                .then(function (result) { return Fayde.Application.Current = app = result; });
-        }
-        function finishError(err) {
-            console.error("An error occurred retrieving the application.", err);
-        }
-        function startApp() {
-            perfex.phases.start('StartApp');
-            app.Attach(canvas);
-            app.Start();
-            loaded();
-        }
-        function closeProgress() {
-            var progressId = document.body.getAttribute("fayde-progress");
-            if (progressId) {
-                document.body.removeChild(document.getElementById(progressId));
-            }
-        }
-        function loaded() {
-            onLoaded && onLoaded(app);
-            perfex.phases.start('Running');
-        }
-        resolveConfig()
-            .then(getApp, finishError)
-            .then(resolveTheme, finishError)
-            .then(resolveApp, finishError)
-            .then(startApp, finishError)
-            .then(closeProgress, finishError);
-    }
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var jsonFile = 'fayde.json';
-    function LoadConfigJson(onComplete) {
-        require(['text!' + jsonFile], function (jsontext) { return configure(jsontext, onComplete); }, function (err) { return onComplete(err); });
-    }
-    Fayde.LoadConfigJson = LoadConfigJson;
-    function configure(jsontext, onComplete) {
-        var json;
-        try {
-            json = JSON.parse(jsontext);
-        }
-        catch (err) {
-            return onComplete(null, err);
-        }
-        if (json) {
-            libs.configure(json.libs || {});
-            themes.configure(json.themes || {});
-            debug.configure(json.debug || {});
-        }
-        onComplete(json);
-    }
-    var libs;
-    (function (libs_1) {
-        function configure(json) {
-            var libs = [];
-            for (var libName in json) {
-                libs.push(getLibConfig(libName, json[libName]));
-            }
-            for (var i = 0; i < libs.length; i++) {
-                setupLibraryConfig(libs[i]);
-            }
-        }
-        libs_1.configure = configure;
-        function getLibConfig(libName, libJson) {
-            return {
-                name: libName,
-                path: libJson.path,
-                base: libJson.base,
-                deps: libJson.deps,
-                exports: libJson.exports,
-                useMin: libJson.useMin
-            };
-        }
-        function setupLibraryConfig(lib) {
-            var uri = new Fayde.Uri(lib.name);
-            if (uri.scheme !== "http")
-                uri = new Fayde.Uri("lib://" + lib.name);
-            var library = Fayde.TypeManager.resolveLibrary(uri.toString());
-            if (!!lib.path)
-                library.sourcePath = lib.path;
-            if (!!lib.base)
-                library.basePath = lib.base;
-            if (!!lib.exports)
-                library.exports = lib.exports;
-            if (!!lib.deps)
-                library.deps = lib.deps;
-            library.useMin = (lib.useMin === true);
-            library.$configModule();
-        }
-    })(libs || (libs = {}));
-    var themes;
-    (function (themes) {
-        function configure(json) {
-            for (var libName in json) {
-                var co = json[libName];
-                var path = co === "none" ? null : (co.path ? co.path : undefined);
-                Fayde.ThemeConfig.Set(libName, path);
-            }
-        }
-        themes.configure = configure;
-    })(themes || (themes = {}));
-    var debug;
-    (function (debug) {
-        function configure(json) {
-            if (toBoolean(json.warnMissingThemes))
-                Fayde.Theme.WarnMissing = true;
-            if (toBoolean(json.warnBrokenPath))
-                Fayde.Data.WarnBrokenPath = true;
-        }
-        debug.configure = configure;
-        function toBoolean(val) {
-            return val === "true"
-                || val === true;
-        }
-    })(debug || (debug = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Render;
-    (function (Render) {
-        Render.Debug = false;
-        Render.DebugIndent = 0;
-    })(Render = Fayde.Render || (Fayde.Render = {}));
-    var Layout;
-    (function (Layout) {
-        Layout.Debug = false;
-        Layout.DebugIndent = 0;
-    })(Layout = Fayde.Layout || (Fayde.Layout = {}));
-    var Media;
-    (function (Media) {
-        var Animation;
-        (function (Animation) {
-            Animation.Log = false;
-            Animation.LogApply = false;
-        })(Animation = Media.Animation || (Media.Animation = {}));
-        var VSM;
-        (function (VSM) {
-            VSM.Debug = false;
-        })(VSM = Media.VSM || (Media.VSM = {}));
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-    var Data;
-    (function (Data) {
-        Data.Debug = false;
-        Data.IsCounterEnabled = false;
-        Data.DataContextCounter = 0;
-    })(Data = Fayde.Data || (Fayde.Data = {}));
-    Fayde.IsInspectionOn = false;
-})(Fayde || (Fayde = {}));
-var NumberEx;
-(function (NumberEx) {
-    var epsilon = 1.192093E-07;
-    var adjustment = 10;
-    function AreClose(val1, val2) {
-        if (val1 === val2)
-            return true;
-        var softdiff = (Math.abs(val1) + Math.abs(val2) + adjustment) * epsilon;
-        var diff = val1 - val2;
-        return -softdiff < diff && diff < softdiff;
-    }
-    NumberEx.AreClose = AreClose;
-    function IsLessThanClose(val1, val2) {
-        return val1 > val2 || !AreClose(val1, val2);
-    }
-    NumberEx.IsLessThanClose = IsLessThanClose;
-    function IsGreaterThanClose(val1, val2) {
-        return val1 > val2 || !AreClose(val1, val2);
-    }
-    NumberEx.IsGreaterThanClose = IsGreaterThanClose;
-})(NumberEx || (NumberEx = {}));
-var StringEx;
-(function (StringEx) {
-    function Format(format) {
-        var items = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            items[_i - 1] = arguments[_i];
-        }
-        var args = arguments;
-        return format.replace(/{(\d+)}/g, function (match) {
-            var matches = [];
-            for (var _i = 1; _i < arguments.length; _i++) {
-                matches[_i - 1] = arguments[_i];
-            }
-            var i = parseInt(matches[0]);
-            return typeof items[i] != 'undefined'
-                ? items[i]
-                : match;
-        });
-    }
-    StringEx.Format = Format;
-})(StringEx || (StringEx = {}));
-var TimelineProfile = (function () {
-    function TimelineProfile() {
-    }
-    TimelineProfile.Parse = function (isStart, name) {
-        if (!isStart)
-            return TimelineProfile._FinishEvent("Parse", name);
-        TimelineProfile._Events.push({
-            Type: "Parse",
-            Name: name,
-            Time: new Date().valueOf()
-        });
-    };
-    TimelineProfile.Navigate = function (isStart, name) {
-        if (!isStart)
-            return TimelineProfile._FinishEvent("Navigate", name);
-        TimelineProfile._Events.push({
-            Type: "Navigate",
-            Name: name,
-            Time: new Date().valueOf(),
-        });
-    };
-    TimelineProfile.LayoutPass = function (isStart) {
-        if (!TimelineProfile.IsNextLayoutPassProfiled)
-            return;
-        if (!isStart) {
-            TimelineProfile.IsNextLayoutPassProfiled = false;
-            return TimelineProfile._FinishEvent("LayoutPass");
-        }
-        TimelineProfile._Events.push({
-            Type: "LayoutPass",
-            Name: "",
-            Time: new Date().valueOf(),
-        });
-    };
-    TimelineProfile._FinishEvent = function (type, name) {
-        var evts = TimelineProfile._Events;
-        var len = evts.length;
-        var evt;
-        for (var i = len - 1; i >= 0; i--) {
-            evt = evts[i];
-            if (evt.Type === type && (!name || evt.Name === name)) {
-                evts.splice(i, 1);
-                break;
-            }
-            evt = null;
-        }
-        if (!evt)
-            return;
-        TimelineProfile.Groups.push({
-            Type: evt.Type,
-            Data: evt.Name,
-            Start: evt.Time - TimelineProfile.TimelineStart,
-            Length: new Date().valueOf() - evt.Time
-        });
-    };
-    TimelineProfile._Events = [];
-    TimelineProfile.Groups = [];
-    TimelineProfile.TimelineStart = 0;
-    TimelineProfile.IsNextLayoutPassProfiled = true;
-    return TimelineProfile;
-})();
-TimelineProfile.TimelineStart = new Date().valueOf();
-var Fayde;
-(function (Fayde) {
-    var Validation;
-    (function (Validation) {
-        function Emit(fe, binding, oldError, error) {
-            if (oldError && error) {
-                Validation.AddError(fe, error);
-                Validation.RemoveError(fe, oldError);
-                if (binding.NotifyOnValidationError) {
-                    raiseBindingValidationError(fe, new Validation.ValidationErrorEventArgs(Validation.ValidationErrorEventAction.Removed, oldError));
-                    raiseBindingValidationError(fe, new Validation.ValidationErrorEventArgs(Validation.ValidationErrorEventAction.Added, error));
-                }
-            }
-            else if (oldError) {
-                Validation.RemoveError(fe, oldError);
-                if (binding.NotifyOnValidationError)
-                    raiseBindingValidationError(fe, new Validation.ValidationErrorEventArgs(Validation.ValidationErrorEventAction.Removed, oldError));
-            }
-            else if (error) {
-                Validation.AddError(fe, error);
-                if (binding.NotifyOnValidationError)
-                    raiseBindingValidationError(fe, new Validation.ValidationErrorEventArgs(Validation.ValidationErrorEventAction.Added, error));
-            }
-        }
-        Validation.Emit = Emit;
-        function raiseBindingValidationError(fe, args) {
-            args.OriginalSource = fe;
-            for (var cur = fe; cur && !args.Handled; cur = Fayde.VisualTreeHelper.GetParent(cur)) {
-                if (cur instanceof Fayde.FrameworkElement)
-                    cur.OnBindingValidationError(args);
-            }
-        }
-    })(Validation = Fayde.Validation || (Fayde.Validation = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="../Collections/ObservableCollection" />
-/// <reference path="../Collections/ReadOnlyObservableCollection" />
-var Fayde;
-(function (Fayde) {
-    var Validation;
-    (function (Validation_1) {
-        var ObservableCollection = Fayde.Collections.ObservableCollection;
-        var ReadOnlyObservableCollection = Fayde.Collections.ReadOnlyObservableCollection;
-        var Validation = (function (_super) {
-            __extends(Validation, _super);
-            function Validation() {
-                _super.apply(this, arguments);
-            }
-            return Validation;
-        })(Fayde.DependencyObject);
-        Fayde.CoreLibrary.add(Validation, "Validation");
-        Validation_1.HasErrorProperty = DependencyProperty.RegisterAttached("HasError", function () { return Boolean; }, Validation);
-        Validation_1.ErrorsProperty = DependencyProperty.RegisterAttached("Errors", function () { return ReadOnlyObservableCollection; }, Validation);
-        var ErrorsCoreProperty = DependencyProperty.RegisterAttached("ErrorsCore", function () { return ObservableCollection; }, Validation);
-        function GetErrorsCore(dobj) {
-            if (!dobj)
-                throw new ArgumentNullException("element");
-            var result = dobj.GetValue(ErrorsCoreProperty);
-            if (result == null) {
-                result = new ObservableCollection();
-                dobj.SetValue(ErrorsCoreProperty, result);
-            }
-            return result;
-        }
-        function GetErrors(dobj) {
-            if (!dobj)
-                throw new ArgumentNullException("element");
-            var result = dobj.GetValue(Validation_1.ErrorsProperty);
-            if (result == null) {
-                result = new ReadOnlyObservableCollection(GetErrorsCore(dobj));
-                dobj.SetValue(Validation_1.ErrorsProperty, result);
-            }
-            return result;
-        }
-        Validation_1.GetErrors = GetErrors;
-        function GetHasError(dobj) {
-            if (dobj == null)
-                throw new ArgumentNullException("element");
-            return dobj.GetValue(Validation_1.HasErrorProperty) === true;
-        }
-        Validation_1.GetHasError = GetHasError;
-        function SetHasError(dobj, value) {
-            dobj.SetValue(Validation_1.HasErrorProperty, value === true);
-        }
-        function AddError(element, error) {
-            var errors = GetErrorsCore(element);
-            GetErrors(element);
-            errors.Add(error);
-            if (errors.Count === 1)
-                SetHasError(element, true);
-            if (element instanceof Fayde.Controls.Control)
-                element.UpdateValidationState(false);
-        }
-        Validation_1.AddError = AddError;
-        function RemoveError(element, error) {
-            var errors = GetErrorsCore(element);
-            GetErrors(element);
-            if (errors.Remove(error)) {
-                if (errors.Count === 0) {
-                    SetHasError(element, false);
-                    if (element instanceof Fayde.Controls.Control)
-                        element.UpdateValidationState(true);
-                }
-            }
-        }
-        Validation_1.RemoveError = RemoveError;
-    })(Validation = Fayde.Validation || (Fayde.Validation = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Validation;
-    (function (Validation) {
-        var ValidationError = (function () {
-            function ValidationError(content, exception, propertyName) {
-                this.ErrorContent = content;
-                this.Exception = exception;
-                this.PropertyName = propertyName;
-                if (this.Exception instanceof Exception)
-                    this.ErrorContent = this.ErrorContent || exception.Message;
-                if (this.Exception instanceof Error)
-                    this.ErrorContent = this.ErrorContent || exception.message;
-                Object.freeze(this);
-            }
-            return ValidationError;
-        })();
-        Validation.ValidationError = ValidationError;
-    })(Validation = Fayde.Validation || (Fayde.Validation = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Validation;
-    (function (Validation) {
-        (function (ValidationErrorEventAction) {
-            ValidationErrorEventAction[ValidationErrorEventAction["Added"] = 0] = "Added";
-            ValidationErrorEventAction[ValidationErrorEventAction["Removed"] = 1] = "Removed";
-        })(Validation.ValidationErrorEventAction || (Validation.ValidationErrorEventAction = {}));
-        var ValidationErrorEventAction = Validation.ValidationErrorEventAction;
-    })(Validation = Fayde.Validation || (Fayde.Validation = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Validation;
-    (function (Validation) {
-        var ValidationErrorEventArgs = (function (_super) {
-            __extends(ValidationErrorEventArgs, _super);
-            function ValidationErrorEventArgs(action, error) {
-                _super.call(this);
-                Object.defineProperties(this, {
-                    "Action": {
-                        value: action,
-                        writable: false
-                    },
-                    "Error": {
-                        value: error,
-                        writable: false
-                    }
-                });
-            }
-            return ValidationErrorEventArgs;
-        })(Fayde.RoutedEventArgs);
-        Validation.ValidationErrorEventArgs = ValidationErrorEventArgs;
-    })(Validation = Fayde.Validation || (Fayde.Validation = {}));
-})(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
     var Text;
@@ -21073,221 +20675,165 @@ var Fayde;
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
-    var Providers;
-    (function (Providers) {
-        (function (StyleIndex) {
-            StyleIndex[StyleIndex["VisualTree"] = 0] = "VisualTree";
-            StyleIndex[StyleIndex["ApplicationResources"] = 1] = "ApplicationResources";
-            StyleIndex[StyleIndex["Theme"] = 2] = "Theme";
-            StyleIndex[StyleIndex["Count"] = 3] = "Count";
-        })(Providers.StyleIndex || (Providers.StyleIndex = {}));
-        var StyleIndex = Providers.StyleIndex;
-        (function (StyleMask) {
-            StyleMask[StyleMask["None"] = 0] = "None";
-            StyleMask[StyleMask["VisualTree"] = 1] = "VisualTree";
-            StyleMask[StyleMask["ApplicationResources"] = 2] = "ApplicationResources";
-            StyleMask[StyleMask["Theme"] = 4] = "Theme";
-            StyleMask[StyleMask["All"] = 7] = "All";
-        })(Providers.StyleMask || (Providers.StyleMask = {}));
-        var StyleMask = Providers.StyleMask;
-        var ImplicitStyleBroker = (function () {
-            function ImplicitStyleBroker() {
-            }
-            ImplicitStyleBroker.Set = function (fe, mask, styles) {
-                if (!styles)
-                    styles = getImplicitStyles(fe, mask);
-                if (styles) {
-                    var error = new BError();
-                    var len = StyleIndex.Count;
-                    for (var i = 0; i < len; i++) {
-                        var style = styles[i];
-                        if (!style)
-                            continue;
-                        if (!style.Validate(fe, error)) {
-                            error.ThrowException();
-                            return;
-                        }
-                    }
+    var Validation;
+    (function (Validation) {
+        function Emit(fe, binding, oldError, error) {
+            if (oldError && error) {
+                Validation.AddError(fe, error);
+                Validation.RemoveError(fe, oldError);
+                if (binding.NotifyOnValidationError) {
+                    raiseBindingValidationError(fe, new Validation.ValidationErrorEventArgs(Validation.ValidationErrorEventAction.Removed, oldError));
+                    raiseBindingValidationError(fe, new Validation.ValidationErrorEventArgs(Validation.ValidationErrorEventAction.Added, error));
                 }
-                ImplicitStyleBroker.SetImpl(fe, mask, styles);
-            };
-            ImplicitStyleBroker.SetImpl = function (fe, mask, styles) {
-                if (!styles)
-                    return;
-                var oldStyles = fe.XamlNode._ImplicitStyles;
-                var newStyles = [null, null, null];
-                if (oldStyles) {
-                    newStyles[StyleIndex.Theme] = oldStyles[StyleIndex.Theme];
-                    newStyles[StyleIndex.ApplicationResources] = oldStyles[StyleIndex.ApplicationResources];
-                    newStyles[StyleIndex.VisualTree] = oldStyles[StyleIndex.VisualTree];
-                }
-                if (mask & StyleMask.Theme)
-                    newStyles[StyleIndex.Theme] = styles[StyleIndex.Theme];
-                if (mask & StyleMask.ApplicationResources)
-                    newStyles[StyleIndex.ApplicationResources] = styles[StyleIndex.ApplicationResources];
-                if (mask & StyleMask.VisualTree)
-                    newStyles[StyleIndex.VisualTree] = styles[StyleIndex.VisualTree];
-                ImplicitStyleBroker.ApplyStyles(fe, mask, styles);
-            };
-            ImplicitStyleBroker.Clear = function (fe, mask) {
-                var holder = fe.XamlNode;
-                var oldStyles = holder._ImplicitStyles;
-                if (!oldStyles)
-                    return;
-                var newStyles = oldStyles.slice(0);
-                if (mask & StyleMask.Theme)
-                    newStyles[StyleIndex.Theme] = null;
-                if (mask & StyleMask.ApplicationResources)
-                    newStyles[StyleIndex.ApplicationResources] = null;
-                if (mask & StyleMask.VisualTree)
-                    newStyles[StyleIndex.VisualTree] = null;
-                ImplicitStyleBroker.ApplyStyles(fe, holder._StyleMask & ~mask, newStyles);
-            };
-            ImplicitStyleBroker.ApplyStyles = function (fe, mask, styles) {
-                var holder = fe.XamlNode;
-                var oldStyles = holder._ImplicitStyles;
-                var isChanged = !oldStyles || mask !== holder._StyleMask;
-                if (!isChanged) {
-                    for (var i = 0; i < StyleIndex.Count; i++) {
-                        if (styles[i] !== oldStyles[i]) {
-                            isChanged = true;
-                            break;
-                        }
-                    }
-                }
-                if (!isChanged)
-                    return;
-                Providers.SwapStyles(fe, Fayde.MultipleStylesWalker(oldStyles), Fayde.MultipleStylesWalker(styles), true);
-                holder._ImplicitStyles = styles;
-                holder._StyleMask = mask;
-            };
-            return ImplicitStyleBroker;
-        })();
-        Providers.ImplicitStyleBroker = ImplicitStyleBroker;
-        function getImplicitStyles(fe, mask) {
-            var styles = [];
-            if ((mask & StyleMask.Theme) != 0) {
-                styles[StyleIndex.Theme] = getThemeStyle(fe);
             }
-            if ((mask & StyleMask.ApplicationResources) != 0) {
-                var app = Fayde.Application.Current;
-                if (app)
-                    styles[StyleIndex.ApplicationResources] = getAppResourcesStyle(app, fe);
+            else if (oldError) {
+                Validation.RemoveError(fe, oldError);
+                if (binding.NotifyOnValidationError)
+                    raiseBindingValidationError(fe, new Validation.ValidationErrorEventArgs(Validation.ValidationErrorEventAction.Removed, oldError));
             }
-            if ((mask & StyleMask.VisualTree) != 0)
-                styles[StyleIndex.VisualTree] = getVisualTreeStyle(fe);
-            return styles;
+            else if (error) {
+                Validation.AddError(fe, error);
+                if (binding.NotifyOnValidationError)
+                    raiseBindingValidationError(fe, new Validation.ValidationErrorEventArgs(Validation.ValidationErrorEventAction.Added, error));
+            }
         }
-        function getThemeStyle(fe) {
-            if (fe instanceof Fayde.Controls.Control) {
-                var style = fe.GetDefaultStyle();
-                if (style)
-                    return style;
+        Validation.Emit = Emit;
+        function raiseBindingValidationError(fe, args) {
+            args.OriginalSource = fe;
+            for (var cur = fe; cur && !args.Handled; cur = Fayde.VisualTreeHelper.GetParent(cur)) {
+                if (cur instanceof Fayde.FrameworkElement)
+                    cur.OnBindingValidationError(args);
             }
-            return Fayde.ThemeManager.FindStyle(fe.DefaultStyleKey);
         }
-        function getAppResourcesStyle(app, fe) {
-            return app.Resources.Get(fe.DefaultStyleKey);
-        }
-        function getVisualTreeStyle(fe) {
-            var key = fe.DefaultStyleKey;
-            var cur = fe;
-            var isControl = cur instanceof Fayde.Controls.Control;
-            var curNode = fe.XamlNode;
-            var rd;
-            while (curNode) {
-                cur = curNode.XObject;
-                if (cur.TemplateOwner && !fe.TemplateOwner) {
-                    cur = cur.TemplateOwner;
-                    curNode = cur.XamlNode;
-                    continue;
-                }
-                if (!isControl && cur === fe.TemplateOwner)
-                    break;
-                rd = cur.Resources;
-                if (rd) {
-                    var style = rd.Get(key);
-                    if (style)
-                        return style;
-                }
-                curNode = curNode.VisualParentNode;
+    })(Validation = Fayde.Validation || (Fayde.Validation = {}));
+})(Fayde || (Fayde = {}));
+/// <reference path="../Collections/ObservableCollection" />
+/// <reference path="../Collections/ReadOnlyObservableCollection" />
+var Fayde;
+(function (Fayde) {
+    var Validation;
+    (function (Validation_1) {
+        var ObservableCollection = Fayde.Collections.ObservableCollection;
+        var ReadOnlyObservableCollection = Fayde.Collections.ReadOnlyObservableCollection;
+        var Validation = (function (_super) {
+            __extends(Validation, _super);
+            function Validation() {
+                _super.apply(this, arguments);
             }
-            return undefined;
+            return Validation;
+        })(Fayde.DependencyObject);
+        Fayde.CoreLibrary.add(Validation, "Validation");
+        Validation_1.HasErrorProperty = DependencyProperty.RegisterAttached("HasError", function () { return Boolean; }, Validation);
+        Validation_1.ErrorsProperty = DependencyProperty.RegisterAttached("Errors", function () { return ReadOnlyObservableCollection; }, Validation);
+        var ErrorsCoreProperty = DependencyProperty.RegisterAttached("ErrorsCore", function () { return ObservableCollection; }, Validation);
+        function GetErrorsCore(dobj) {
+            if (!dobj)
+                throw new ArgumentNullException("element");
+            var result = dobj.GetValue(ErrorsCoreProperty);
+            if (result == null) {
+                result = new ObservableCollection();
+                dobj.SetValue(ErrorsCoreProperty, result);
+            }
+            return result;
         }
-    })(Providers = Fayde.Providers || (Fayde.Providers = {}));
+        function GetErrors(dobj) {
+            if (!dobj)
+                throw new ArgumentNullException("element");
+            var result = dobj.GetValue(Validation_1.ErrorsProperty);
+            if (result == null) {
+                result = new ReadOnlyObservableCollection(GetErrorsCore(dobj));
+                dobj.SetValue(Validation_1.ErrorsProperty, result);
+            }
+            return result;
+        }
+        Validation_1.GetErrors = GetErrors;
+        function GetHasError(dobj) {
+            if (dobj == null)
+                throw new ArgumentNullException("element");
+            return dobj.GetValue(Validation_1.HasErrorProperty) === true;
+        }
+        Validation_1.GetHasError = GetHasError;
+        function SetHasError(dobj, value) {
+            dobj.SetValue(Validation_1.HasErrorProperty, value === true);
+        }
+        function AddError(element, error) {
+            var errors = GetErrorsCore(element);
+            GetErrors(element);
+            errors.Add(error);
+            if (errors.Count === 1)
+                SetHasError(element, true);
+            if (element instanceof Fayde.Controls.Control)
+                element.UpdateValidationState(false);
+        }
+        Validation_1.AddError = AddError;
+        function RemoveError(element, error) {
+            var errors = GetErrorsCore(element);
+            GetErrors(element);
+            if (errors.Remove(error)) {
+                if (errors.Count === 0) {
+                    SetHasError(element, false);
+                    if (element instanceof Fayde.Controls.Control)
+                        element.UpdateValidationState(true);
+                }
+            }
+        }
+        Validation_1.RemoveError = RemoveError;
+    })(Validation = Fayde.Validation || (Fayde.Validation = {}));
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
-    var Providers;
-    (function (Providers) {
-        var LocalStyleBroker = (function () {
-            function LocalStyleBroker() {
+    var Validation;
+    (function (Validation) {
+        var ValidationError = (function () {
+            function ValidationError(content, exception, propertyName) {
+                this.ErrorContent = content;
+                this.Exception = exception;
+                this.PropertyName = propertyName;
+                if (this.Exception instanceof Exception)
+                    this.ErrorContent = this.ErrorContent || exception.Message;
+                if (this.Exception instanceof Error)
+                    this.ErrorContent = this.ErrorContent || exception.message;
+                Object.freeze(this);
             }
-            LocalStyleBroker.Set = function (fe, newStyle) {
-                var holder = fe.XamlNode;
-                if (newStyle)
-                    newStyle.Seal();
-                Providers.SwapStyles(fe, Fayde.SingleStyleWalker(holder._LocalStyle), Fayde.SingleStyleWalker(newStyle), false);
-                holder._LocalStyle = newStyle;
-            };
-            return LocalStyleBroker;
+            return ValidationError;
         })();
-        Providers.LocalStyleBroker = LocalStyleBroker;
-    })(Providers = Fayde.Providers || (Fayde.Providers = {}));
+        Validation.ValidationError = ValidationError;
+    })(Validation = Fayde.Validation || (Fayde.Validation = {}));
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
-    var Providers;
-    (function (Providers) {
-        function SwapStyles(fe, oldWalker, newWalker, isImplicit) {
-            var arr = fe._PropertyStorage;
-            var oldSetter = oldWalker.Step();
-            var newSetter = newWalker.Step();
-            var storage;
-            var value;
-            var propd;
-            while (oldSetter || newSetter) {
-                if (oldSetter && newSetter) {
-                    switch (Fayde.Setter.Compare(oldSetter, newSetter)) {
-                        case 0:
-                            value = newSetter.ConvertedValue;
-                            propd = newSetter.Property;
-                            oldSetter = oldWalker.Step();
-                            newSetter = newWalker.Step();
-                            break;
-                        case -1:
-                            value = undefined;
-                            propd = oldSetter.Property;
-                            oldSetter = oldWalker.Step();
-                            break;
-                        case 1:
-                            value = newSetter.ConvertedValue;
-                            propd = newSetter.Property;
-                            newSetter = newWalker.Step();
-                            break;
+    var Validation;
+    (function (Validation) {
+        (function (ValidationErrorEventAction) {
+            ValidationErrorEventAction[ValidationErrorEventAction["Added"] = 0] = "Added";
+            ValidationErrorEventAction[ValidationErrorEventAction["Removed"] = 1] = "Removed";
+        })(Validation.ValidationErrorEventAction || (Validation.ValidationErrorEventAction = {}));
+        var ValidationErrorEventAction = Validation.ValidationErrorEventAction;
+    })(Validation = Fayde.Validation || (Fayde.Validation = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Validation;
+    (function (Validation) {
+        var ValidationErrorEventArgs = (function (_super) {
+            __extends(ValidationErrorEventArgs, _super);
+            function ValidationErrorEventArgs(action, error) {
+                _super.call(this);
+                Object.defineProperties(this, {
+                    "Action": {
+                        value: action,
+                        writable: false
+                    },
+                    "Error": {
+                        value: error,
+                        writable: false
                     }
-                }
-                else if (newSetter) {
-                    value = newSetter.ConvertedValue;
-                    propd = newSetter.Property;
-                    newSetter = newWalker.Step();
-                }
-                else {
-                    value = undefined;
-                    propd = oldSetter.Property;
-                    oldSetter = oldWalker.Step();
-                }
-                storage = arr[propd._ID];
-                if (!storage)
-                    storage = arr[propd._ID] = propd.Store.CreateStorage(fe, propd);
-                if (isImplicit)
-                    propd.Store.SetImplicitStyle(storage, value);
-                else
-                    propd.Store.SetLocalStyleValue(storage, value);
+                });
             }
-        }
-        Providers.SwapStyles = SwapStyles;
-    })(Providers = Fayde.Providers || (Fayde.Providers = {}));
+            return ValidationErrorEventArgs;
+        })(Fayde.RoutedEventArgs);
+        Validation.ValidationErrorEventArgs = ValidationErrorEventArgs;
+    })(Validation = Fayde.Validation || (Fayde.Validation = {}));
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
@@ -21670,7 +21216,6 @@ var Fayde;
             var TextBoxContentProxy = (function () {
                 function TextBoxContentProxy() {
                     this.$$element = null;
-                    this.$$scrollElement = null;
                 }
                 TextBoxContentProxy.prototype.setElement = function (fe, view) {
                     this.$$element = fe;
@@ -21692,11 +21237,8 @@ var Fayde;
                         console.warn("TextBox does not have a valid content element.");
                     }
                 };
-                TextBoxContentProxy.prototype.setScrollElement = function (fe) {
-                    this.$$scrollElement = fe;
-                };
                 TextBoxContentProxy.prototype.setHorizontalScrollBar = function (sbvis) {
-                    var ce = this.$$scrollElement;
+                    var ce = this.$$element;
                     if (!ce)
                         return;
                     var ceType = ce.constructor;
@@ -21706,7 +21248,7 @@ var Fayde;
                     ce.SetValueInternal(propd, sbvis);
                 };
                 TextBoxContentProxy.prototype.setVerticalScrollBar = function (sbvis) {
-                    var ce = this.$$scrollElement;
+                    var ce = this.$$element;
                     if (!ce)
                         return;
                     var ceType = ce.constructor;
@@ -22557,6 +22099,224 @@ var Fayde;
             }
         })(Primitives = Controls.Primitives || (Controls.Primitives = {}));
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Providers;
+    (function (Providers) {
+        (function (StyleIndex) {
+            StyleIndex[StyleIndex["VisualTree"] = 0] = "VisualTree";
+            StyleIndex[StyleIndex["ApplicationResources"] = 1] = "ApplicationResources";
+            StyleIndex[StyleIndex["Theme"] = 2] = "Theme";
+            StyleIndex[StyleIndex["Count"] = 3] = "Count";
+        })(Providers.StyleIndex || (Providers.StyleIndex = {}));
+        var StyleIndex = Providers.StyleIndex;
+        (function (StyleMask) {
+            StyleMask[StyleMask["None"] = 0] = "None";
+            StyleMask[StyleMask["VisualTree"] = 1] = "VisualTree";
+            StyleMask[StyleMask["ApplicationResources"] = 2] = "ApplicationResources";
+            StyleMask[StyleMask["Theme"] = 4] = "Theme";
+            StyleMask[StyleMask["All"] = 7] = "All";
+        })(Providers.StyleMask || (Providers.StyleMask = {}));
+        var StyleMask = Providers.StyleMask;
+        var ImplicitStyleBroker = (function () {
+            function ImplicitStyleBroker() {
+            }
+            ImplicitStyleBroker.Set = function (fe, mask, styles) {
+                if (!styles)
+                    styles = getImplicitStyles(fe, mask);
+                if (styles) {
+                    var error = new BError();
+                    var len = StyleIndex.Count;
+                    for (var i = 0; i < len; i++) {
+                        var style = styles[i];
+                        if (!style)
+                            continue;
+                        if (!style.Validate(fe, error)) {
+                            error.ThrowException();
+                            return;
+                        }
+                    }
+                }
+                ImplicitStyleBroker.SetImpl(fe, mask, styles);
+            };
+            ImplicitStyleBroker.SetImpl = function (fe, mask, styles) {
+                if (!styles)
+                    return;
+                var oldStyles = fe.XamlNode._ImplicitStyles;
+                var newStyles = [null, null, null];
+                if (oldStyles) {
+                    newStyles[StyleIndex.Theme] = oldStyles[StyleIndex.Theme];
+                    newStyles[StyleIndex.ApplicationResources] = oldStyles[StyleIndex.ApplicationResources];
+                    newStyles[StyleIndex.VisualTree] = oldStyles[StyleIndex.VisualTree];
+                }
+                if (mask & StyleMask.Theme)
+                    newStyles[StyleIndex.Theme] = styles[StyleIndex.Theme];
+                if (mask & StyleMask.ApplicationResources)
+                    newStyles[StyleIndex.ApplicationResources] = styles[StyleIndex.ApplicationResources];
+                if (mask & StyleMask.VisualTree)
+                    newStyles[StyleIndex.VisualTree] = styles[StyleIndex.VisualTree];
+                ImplicitStyleBroker.ApplyStyles(fe, mask, styles);
+            };
+            ImplicitStyleBroker.Clear = function (fe, mask) {
+                var holder = fe.XamlNode;
+                var oldStyles = holder._ImplicitStyles;
+                if (!oldStyles)
+                    return;
+                var newStyles = oldStyles.slice(0);
+                if (mask & StyleMask.Theme)
+                    newStyles[StyleIndex.Theme] = null;
+                if (mask & StyleMask.ApplicationResources)
+                    newStyles[StyleIndex.ApplicationResources] = null;
+                if (mask & StyleMask.VisualTree)
+                    newStyles[StyleIndex.VisualTree] = null;
+                ImplicitStyleBroker.ApplyStyles(fe, holder._StyleMask & ~mask, newStyles);
+            };
+            ImplicitStyleBroker.ApplyStyles = function (fe, mask, styles) {
+                var holder = fe.XamlNode;
+                var oldStyles = holder._ImplicitStyles;
+                var isChanged = !oldStyles || mask !== holder._StyleMask;
+                if (!isChanged) {
+                    for (var i = 0; i < StyleIndex.Count; i++) {
+                        if (styles[i] !== oldStyles[i]) {
+                            isChanged = true;
+                            break;
+                        }
+                    }
+                }
+                if (!isChanged)
+                    return;
+                Providers.SwapStyles(fe, Fayde.MultipleStylesWalker(oldStyles), Fayde.MultipleStylesWalker(styles), true);
+                holder._ImplicitStyles = styles;
+                holder._StyleMask = mask;
+            };
+            return ImplicitStyleBroker;
+        })();
+        Providers.ImplicitStyleBroker = ImplicitStyleBroker;
+        function getImplicitStyles(fe, mask) {
+            var styles = [];
+            if ((mask & StyleMask.Theme) != 0) {
+                styles[StyleIndex.Theme] = getThemeStyle(fe);
+            }
+            if ((mask & StyleMask.ApplicationResources) != 0) {
+                var app = Fayde.Application.Current;
+                if (app)
+                    styles[StyleIndex.ApplicationResources] = getAppResourcesStyle(app, fe);
+            }
+            if ((mask & StyleMask.VisualTree) != 0)
+                styles[StyleIndex.VisualTree] = getVisualTreeStyle(fe);
+            return styles;
+        }
+        function getThemeStyle(fe) {
+            if (fe instanceof Fayde.Controls.Control) {
+                var style = fe.GetDefaultStyle();
+                if (style)
+                    return style;
+            }
+            return Fayde.ThemeManager.FindStyle(fe.DefaultStyleKey);
+        }
+        function getAppResourcesStyle(app, fe) {
+            return app.Resources.Get(fe.DefaultStyleKey);
+        }
+        function getVisualTreeStyle(fe) {
+            var key = fe.DefaultStyleKey;
+            var cur = fe;
+            var isControl = cur instanceof Fayde.Controls.Control;
+            var curNode = fe.XamlNode;
+            var rd;
+            while (curNode) {
+                cur = curNode.XObject;
+                if (cur.TemplateOwner && !fe.TemplateOwner) {
+                    cur = cur.TemplateOwner;
+                    curNode = cur.XamlNode;
+                    continue;
+                }
+                if (!isControl && cur === fe.TemplateOwner)
+                    break;
+                rd = cur.Resources;
+                if (rd) {
+                    var style = rd.Get(key);
+                    if (style)
+                        return style;
+                }
+                curNode = curNode.VisualParentNode;
+            }
+            return undefined;
+        }
+    })(Providers = Fayde.Providers || (Fayde.Providers = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Providers;
+    (function (Providers) {
+        var LocalStyleBroker = (function () {
+            function LocalStyleBroker() {
+            }
+            LocalStyleBroker.Set = function (fe, newStyle) {
+                var holder = fe.XamlNode;
+                if (newStyle)
+                    newStyle.Seal();
+                Providers.SwapStyles(fe, Fayde.SingleStyleWalker(holder._LocalStyle), Fayde.SingleStyleWalker(newStyle), false);
+                holder._LocalStyle = newStyle;
+            };
+            return LocalStyleBroker;
+        })();
+        Providers.LocalStyleBroker = LocalStyleBroker;
+    })(Providers = Fayde.Providers || (Fayde.Providers = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Providers;
+    (function (Providers) {
+        function SwapStyles(fe, oldWalker, newWalker, isImplicit) {
+            var arr = fe._PropertyStorage;
+            var oldSetter = oldWalker.Step();
+            var newSetter = newWalker.Step();
+            var storage;
+            var value;
+            var propd;
+            while (oldSetter || newSetter) {
+                if (oldSetter && newSetter) {
+                    switch (Fayde.Setter.Compare(oldSetter, newSetter)) {
+                        case 0:
+                            value = newSetter.ConvertedValue;
+                            propd = newSetter.Property;
+                            oldSetter = oldWalker.Step();
+                            newSetter = newWalker.Step();
+                            break;
+                        case -1:
+                            value = undefined;
+                            propd = oldSetter.Property;
+                            oldSetter = oldWalker.Step();
+                            break;
+                        case 1:
+                            value = newSetter.ConvertedValue;
+                            propd = newSetter.Property;
+                            newSetter = newWalker.Step();
+                            break;
+                    }
+                }
+                else if (newSetter) {
+                    value = newSetter.ConvertedValue;
+                    propd = newSetter.Property;
+                    newSetter = newWalker.Step();
+                }
+                else {
+                    value = undefined;
+                    propd = oldSetter.Property;
+                    oldSetter = oldWalker.Step();
+                }
+                storage = arr[propd._ID];
+                if (!storage)
+                    storage = arr[propd._ID] = propd.Store.CreateStorage(fe, propd);
+                if (isImplicit)
+                    propd.Store.SetImplicitStyle(storage, value);
+                else
+                    propd.Store.SetLocalStyleValue(storage, value);
+            }
+        }
+        Providers.SwapStyles = SwapStyles;
+    })(Providers = Fayde.Providers || (Fayde.Providers = {}));
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
@@ -26263,176 +26023,6 @@ var Fayde;
         })(Effects = Media.Effects || (Media.Effects = {}));
     })(Media = Fayde.Media || (Fayde.Media = {}));
 })(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Media;
-    (function (Media) {
-        var LinearGradient;
-        (function (LinearGradient) {
-            function createRepeatInterpolator(start, end, bounds) {
-                var first = { x: start.x, y: start.y };
-                var last = { x: end.x, y: end.y };
-                var dir = { x: end.x - start.x, y: end.y - start.y };
-                LinearGradient.calcMetrics(dir, first, last, bounds);
-                var numSteps = (last.x - first.x) / dir.x;
-                var stepSize = 1.0 / numSteps;
-                var cur = -stepSize;
-                return {
-                    x0: first.x,
-                    y0: first.y,
-                    x1: last.x,
-                    y1: last.y,
-                    step: function () {
-                        cur += stepSize;
-                        return cur < 1;
-                    },
-                    interpolate: function (offset) {
-                        return cur + (offset / numSteps);
-                    }
-                };
-            }
-            LinearGradient.createRepeatInterpolator = createRepeatInterpolator;
-            function createReflectInterpolator(start, end, bounds) {
-                var first = { x: start.x, y: start.y };
-                var last = { x: end.x, y: end.y };
-                var dir = { x: end.x - start.x, y: end.y - start.y };
-                LinearGradient.calcMetrics(dir, first, last, bounds);
-                var numSteps = (last.x - first.x) / dir.x;
-                var stepSize = 1.0 / numSteps;
-                var cur = -stepSize;
-                var inverted = Math.round((start.x - first.x) / dir.x) % 2 === 0;
-                return {
-                    x0: first.x,
-                    y0: first.y,
-                    x1: last.x,
-                    y1: last.y,
-                    step: function () {
-                        inverted = !inverted;
-                        cur += stepSize;
-                        return cur < 1;
-                    },
-                    interpolate: function (offset) {
-                        var norm = offset / numSteps;
-                        return !inverted ? cur + norm : cur + (stepSize - norm);
-                    }
-                };
-            }
-            LinearGradient.createReflectInterpolator = createReflectInterpolator;
-        })(LinearGradient = Media.LinearGradient || (Media.LinearGradient = {}));
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Media;
-    (function (Media) {
-        var LinearGradient;
-        (function (LinearGradient) {
-            function calcMetrics(dir, first, last, bounds) {
-                if (dir.y === 0) {
-                    if (dir.x < 0)
-                        W(dir, first, last, bounds);
-                    else if (dir.x !== 0)
-                        E(dir, first, last, bounds);
-                }
-                else if (dir.x === 0) {
-                    if (dir.y < 0)
-                        N(dir, first, last, bounds);
-                    else if (dir.y !== 0)
-                        S(dir, first, last, bounds);
-                }
-                else if (dir.x < 0 && dir.y < 0) {
-                    NW(dir, first, last, bounds);
-                }
-                else if (dir.x < 0 && dir.y > 0) {
-                    SW(dir, first, last, bounds);
-                }
-                else if (dir.x > 0 && dir.y < 0) {
-                    NE(dir, first, last, bounds);
-                }
-                else if (dir.x > 0 && dir.y > 0) {
-                    SE(dir, first, last, bounds);
-                }
-            }
-            LinearGradient.calcMetrics = calcMetrics;
-            function E(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                while (first.x >= bounds.x)
-                    first.x -= dir.x;
-                while (last.x <= maxX)
-                    last.x += dir.x;
-            }
-            function W(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                while (first.x <= maxX)
-                    first.x -= dir.x;
-                while (last.x >= bounds.x)
-                    last.x += dir.x;
-            }
-            function S(dir, first, last, bounds) {
-                var maxY = bounds.y + bounds.height;
-                while (first.y >= bounds.y)
-                    first.y -= dir.y;
-                while (last.y <= maxY)
-                    last.y += dir.y;
-            }
-            function N(dir, first, last, bounds) {
-                var maxY = bounds.y + bounds.height;
-                while (first.y <= maxY)
-                    first.y -= dir.y;
-                while (last.y >= bounds.y)
-                    last.y += dir.y;
-            }
-            function NW(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                var maxY = bounds.y + bounds.height;
-                while (first.x <= maxX && first.y <= maxY) {
-                    first.x -= dir.x;
-                    first.y -= dir.y;
-                }
-                while (last.x >= bounds.x && last.y >= bounds.y) {
-                    last.x += dir.x;
-                    last.y += dir.y;
-                }
-            }
-            function SW(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                var maxY = bounds.y + bounds.height;
-                while (first.x <= maxX && first.y >= bounds.y) {
-                    first.x -= dir.x;
-                    first.y -= dir.y;
-                }
-                while (last.x >= bounds.x && last.y <= maxY) {
-                    last.x += dir.x;
-                    last.y += dir.y;
-                }
-            }
-            function NE(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                var maxY = bounds.y + bounds.height;
-                while (first.x >= bounds.x && first.y <= maxY) {
-                    first.x -= dir.x;
-                    first.y -= dir.y;
-                }
-                while (last.x <= maxX && last.y >= bounds.y) {
-                    last.x += dir.x;
-                    last.y += dir.y;
-                }
-            }
-            function SE(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                var maxY = bounds.y + bounds.height;
-                while (first.x >= bounds.x && first.y >= bounds.y) {
-                    first.x -= dir.x;
-                    first.y -= dir.y;
-                }
-                while (last.x <= maxX && last.y <= maxY) {
-                    last.x += dir.x;
-                    last.y += dir.y;
-                }
-            }
-        })(LinearGradient = Media.LinearGradient || (Media.LinearGradient = {}));
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-})(Fayde || (Fayde = {}));
 /// <reference path="../../Core/DependencyObject.ts"/>
 var Fayde;
 (function (Fayde) {
@@ -26735,6 +26325,176 @@ var Fayde;
 (function (Fayde) {
     var Media;
     (function (Media) {
+        var LinearGradient;
+        (function (LinearGradient) {
+            function createRepeatInterpolator(start, end, bounds) {
+                var first = { x: start.x, y: start.y };
+                var last = { x: end.x, y: end.y };
+                var dir = { x: end.x - start.x, y: end.y - start.y };
+                LinearGradient.calcMetrics(dir, first, last, bounds);
+                var numSteps = (last.x - first.x) / dir.x;
+                var stepSize = 1.0 / numSteps;
+                var cur = -stepSize;
+                return {
+                    x0: first.x,
+                    y0: first.y,
+                    x1: last.x,
+                    y1: last.y,
+                    step: function () {
+                        cur += stepSize;
+                        return cur < 1;
+                    },
+                    interpolate: function (offset) {
+                        return cur + (offset / numSteps);
+                    }
+                };
+            }
+            LinearGradient.createRepeatInterpolator = createRepeatInterpolator;
+            function createReflectInterpolator(start, end, bounds) {
+                var first = { x: start.x, y: start.y };
+                var last = { x: end.x, y: end.y };
+                var dir = { x: end.x - start.x, y: end.y - start.y };
+                LinearGradient.calcMetrics(dir, first, last, bounds);
+                var numSteps = (last.x - first.x) / dir.x;
+                var stepSize = 1.0 / numSteps;
+                var cur = -stepSize;
+                var inverted = Math.round((start.x - first.x) / dir.x) % 2 === 0;
+                return {
+                    x0: first.x,
+                    y0: first.y,
+                    x1: last.x,
+                    y1: last.y,
+                    step: function () {
+                        inverted = !inverted;
+                        cur += stepSize;
+                        return cur < 1;
+                    },
+                    interpolate: function (offset) {
+                        var norm = offset / numSteps;
+                        return !inverted ? cur + norm : cur + (stepSize - norm);
+                    }
+                };
+            }
+            LinearGradient.createReflectInterpolator = createReflectInterpolator;
+        })(LinearGradient = Media.LinearGradient || (Media.LinearGradient = {}));
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Media;
+    (function (Media) {
+        var LinearGradient;
+        (function (LinearGradient) {
+            function calcMetrics(dir, first, last, bounds) {
+                if (dir.y === 0) {
+                    if (dir.x < 0)
+                        W(dir, first, last, bounds);
+                    else if (dir.x !== 0)
+                        E(dir, first, last, bounds);
+                }
+                else if (dir.x === 0) {
+                    if (dir.y < 0)
+                        N(dir, first, last, bounds);
+                    else if (dir.y !== 0)
+                        S(dir, first, last, bounds);
+                }
+                else if (dir.x < 0 && dir.y < 0) {
+                    NW(dir, first, last, bounds);
+                }
+                else if (dir.x < 0 && dir.y > 0) {
+                    SW(dir, first, last, bounds);
+                }
+                else if (dir.x > 0 && dir.y < 0) {
+                    NE(dir, first, last, bounds);
+                }
+                else if (dir.x > 0 && dir.y > 0) {
+                    SE(dir, first, last, bounds);
+                }
+            }
+            LinearGradient.calcMetrics = calcMetrics;
+            function E(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                while (first.x >= bounds.x)
+                    first.x -= dir.x;
+                while (last.x <= maxX)
+                    last.x += dir.x;
+            }
+            function W(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                while (first.x <= maxX)
+                    first.x -= dir.x;
+                while (last.x >= bounds.x)
+                    last.x += dir.x;
+            }
+            function S(dir, first, last, bounds) {
+                var maxY = bounds.y + bounds.height;
+                while (first.y >= bounds.y)
+                    first.y -= dir.y;
+                while (last.y <= maxY)
+                    last.y += dir.y;
+            }
+            function N(dir, first, last, bounds) {
+                var maxY = bounds.y + bounds.height;
+                while (first.y <= maxY)
+                    first.y -= dir.y;
+                while (last.y >= bounds.y)
+                    last.y += dir.y;
+            }
+            function NW(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                var maxY = bounds.y + bounds.height;
+                while (first.x <= maxX && first.y <= maxY) {
+                    first.x -= dir.x;
+                    first.y -= dir.y;
+                }
+                while (last.x >= bounds.x && last.y >= bounds.y) {
+                    last.x += dir.x;
+                    last.y += dir.y;
+                }
+            }
+            function SW(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                var maxY = bounds.y + bounds.height;
+                while (first.x <= maxX && first.y >= bounds.y) {
+                    first.x -= dir.x;
+                    first.y -= dir.y;
+                }
+                while (last.x >= bounds.x && last.y <= maxY) {
+                    last.x += dir.x;
+                    last.y += dir.y;
+                }
+            }
+            function NE(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                var maxY = bounds.y + bounds.height;
+                while (first.x >= bounds.x && first.y <= maxY) {
+                    first.x -= dir.x;
+                    first.y -= dir.y;
+                }
+                while (last.x <= maxX && last.y >= bounds.y) {
+                    last.x += dir.x;
+                    last.y += dir.y;
+                }
+            }
+            function SE(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                var maxY = bounds.y + bounds.height;
+                while (first.x >= bounds.x && first.y >= bounds.y) {
+                    first.x -= dir.x;
+                    first.y -= dir.y;
+                }
+                while (last.x <= maxX && last.y <= maxY) {
+                    last.x += dir.x;
+                    last.y += dir.y;
+                }
+            }
+        })(LinearGradient = Media.LinearGradient || (Media.LinearGradient = {}));
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Media;
+    (function (Media) {
         var RadialGradient;
         (function (RadialGradient) {
             function createExtender(data, bounds) {
@@ -26786,125 +26546,6 @@ var Fayde;
                 return Math.sqrt((dx * dx) + (dy * dy));
             }
         })(RadialGradient = Media.RadialGradient || (Media.RadialGradient = {}));
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="../Imaging/ImageSource" />
-var Fayde;
-(function (Fayde) {
-    var Media;
-    (function (Media) {
-        var Videos;
-        (function (Videos) {
-            var VideoSourceBase = (function (_super) {
-                __extends(VideoSourceBase, _super);
-                function VideoSourceBase() {
-                    _super.apply(this, arguments);
-                    this.$watchers = [];
-                    this.$autoplay = true;
-                }
-                VideoSourceBase.prototype.createElement = function () {
-                    return document.createElement("video");
-                };
-                VideoSourceBase.prototype.reset = function () {
-                    var _this = this;
-                    _super.prototype.reset.call(this);
-                    this.setAutoPlay(this.$autoplay);
-                    this.$element.onerror = function (e) { return _this.onVideoErrored(e); };
-                    this.$element.oncanplay = function (e) { return _this.onVideoCanPlay(); };
-                    this.onVideoChanged();
-                };
-                VideoSourceBase.prototype.watch = function (watcher) {
-                    var watchers = this.$watchers;
-                    watchers.push(watcher);
-                    return {
-                        dispose: function () {
-                            var index = watchers.indexOf(watcher);
-                            if (index > -1)
-                                watchers.splice(index, 1);
-                        }
-                    };
-                };
-                VideoSourceBase.prototype.setAutoPlay = function (value) {
-                    this.$autoplay = value;
-                    if (!value)
-                        this.$element.removeAttribute("autoplay");
-                    else
-                        this.$element.setAttribute("autoplay", "autoplay");
-                };
-                VideoSourceBase.prototype.getIsPlaying = function () {
-                    var video = this.$element;
-                    return !!video && !video.paused && !video.ended;
-                };
-                VideoSourceBase.prototype.Play = function () {
-                    this.$element.play();
-                };
-                VideoSourceBase.prototype.Pause = function () {
-                    this.$element.pause();
-                };
-                VideoSourceBase.prototype.onVideoErrored = function (e) {
-                    console.info("Failed to load: " + this.$element.src.toString());
-                    for (var i = 0, watchers = this.$watchers; i < watchers.length; i++) {
-                        watchers[i].onErrored(this, e.error);
-                    }
-                };
-                VideoSourceBase.prototype.onVideoCanPlay = function () {
-                    this.setMetrics(this.$element.videoWidth, this.$element.videoHeight);
-                    for (var i = 0, watchers = this.$watchers; i < watchers.length; i++) {
-                        watchers[i].onCanPlay(this);
-                    }
-                };
-                VideoSourceBase.prototype.onVideoChanged = function () {
-                    for (var i = 0, watchers = this.$watchers; i < watchers.length; i++) {
-                        watchers[i].onChanged(this);
-                    }
-                };
-                return VideoSourceBase;
-            })(Media.Imaging.ImageSource);
-            Videos.VideoSourceBase = VideoSourceBase;
-            Fayde.CoreLibrary.add(VideoSourceBase);
-        })(Videos = Media.Videos || (Media.Videos = {}));
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="VideoSourceBase.ts"/>
-var Fayde;
-(function (Fayde) {
-    var Media;
-    (function (Media) {
-        var Videos;
-        (function (Videos) {
-            var VideoSource = (function (_super) {
-                __extends(VideoSource, _super);
-                function VideoSource(uri) {
-                    _super.call(this);
-                    this.VideoFailed = new nullstone.Event();
-                    this.VideoOpened = new nullstone.Event();
-                    if (uri)
-                        this.UriSource = uri;
-                }
-                VideoSource.prototype._UriSourceChanged = function (args) {
-                    var uri = args.NewValue;
-                    if (Fayde.Uri.isNullOrEmpty(uri))
-                        this.reset();
-                    else
-                        this.OnUriSourceChanged(args.OldValue, uri);
-                };
-                VideoSource.prototype.OnUriSourceChanged = function (oldValue, newValue) {
-                    if (!this.$element || !newValue)
-                        this.reset();
-                    this.$element.src = Fayde.TypeManager.resolveResource(newValue);
-                    this.$element.load();
-                    this.onVideoChanged();
-                };
-                VideoSource.prototype.onVideoErrored = function (e) {
-                    _super.prototype.onVideoErrored.call(this, e);
-                    this.VideoFailed.raise(this, null);
-                };
-                VideoSource.UriSourceProperty = DependencyProperty.RegisterFull("UriSource", function () { return Fayde.Uri; }, VideoSource, undefined, function (bi, args) { return bi._UriSourceChanged(args); }, undefined, true);
-                return VideoSource;
-            })(Videos.VideoSourceBase);
-            Videos.VideoSource = VideoSource;
-            Fayde.CoreLibrary.add(VideoSource);
-        })(Videos = Media.Videos || (Media.Videos = {}));
     })(Media = Fayde.Media || (Fayde.Media = {}));
 })(Fayde || (Fayde = {}));
 /// <reference path="../../Core/DependencyObject.ts" />
@@ -27181,9 +26822,6 @@ var Fayde;
                     }
                 };
                 VisualStateManager._GetTemplateRoot = function (control) {
-                    if (control instanceof Fayde.Controls.Page) {
-                        return control.XamlNode.XObject;
-                    }
                     if (control instanceof Fayde.Controls.UserControl)
                         return control.XamlNode.TemplateRoot;
                     var enumerator = control.XamlNode.GetVisualTreeEnumerator();
@@ -27403,6 +27041,125 @@ var Fayde;
             Fayde.Markup.Content(VisualTransition, VisualTransition.StoryboardProperty);
             Fayde.CoreLibrary.add(VisualTransition);
         })(VSM = Media.VSM || (Media.VSM = {}));
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+})(Fayde || (Fayde = {}));
+/// <reference path="../Imaging/ImageSource" />
+var Fayde;
+(function (Fayde) {
+    var Media;
+    (function (Media) {
+        var Videos;
+        (function (Videos) {
+            var VideoSourceBase = (function (_super) {
+                __extends(VideoSourceBase, _super);
+                function VideoSourceBase() {
+                    _super.apply(this, arguments);
+                    this.$watchers = [];
+                    this.$autoplay = true;
+                }
+                VideoSourceBase.prototype.createElement = function () {
+                    return document.createElement("video");
+                };
+                VideoSourceBase.prototype.reset = function () {
+                    var _this = this;
+                    _super.prototype.reset.call(this);
+                    this.setAutoPlay(this.$autoplay);
+                    this.$element.onerror = function (e) { return _this.onVideoErrored(e); };
+                    this.$element.oncanplay = function (e) { return _this.onVideoCanPlay(); };
+                    this.onVideoChanged();
+                };
+                VideoSourceBase.prototype.watch = function (watcher) {
+                    var watchers = this.$watchers;
+                    watchers.push(watcher);
+                    return {
+                        dispose: function () {
+                            var index = watchers.indexOf(watcher);
+                            if (index > -1)
+                                watchers.splice(index, 1);
+                        }
+                    };
+                };
+                VideoSourceBase.prototype.setAutoPlay = function (value) {
+                    this.$autoplay = value;
+                    if (!value)
+                        this.$element.removeAttribute("autoplay");
+                    else
+                        this.$element.setAttribute("autoplay", "autoplay");
+                };
+                VideoSourceBase.prototype.getIsPlaying = function () {
+                    var video = this.$element;
+                    return !!video && !video.paused && !video.ended;
+                };
+                VideoSourceBase.prototype.Play = function () {
+                    this.$element.play();
+                };
+                VideoSourceBase.prototype.Pause = function () {
+                    this.$element.pause();
+                };
+                VideoSourceBase.prototype.onVideoErrored = function (e) {
+                    console.info("Failed to load: " + this.$element.src.toString());
+                    for (var i = 0, watchers = this.$watchers; i < watchers.length; i++) {
+                        watchers[i].onErrored(this, e.error);
+                    }
+                };
+                VideoSourceBase.prototype.onVideoCanPlay = function () {
+                    this.setMetrics(this.$element.videoWidth, this.$element.videoHeight);
+                    for (var i = 0, watchers = this.$watchers; i < watchers.length; i++) {
+                        watchers[i].onCanPlay(this);
+                    }
+                };
+                VideoSourceBase.prototype.onVideoChanged = function () {
+                    for (var i = 0, watchers = this.$watchers; i < watchers.length; i++) {
+                        watchers[i].onChanged(this);
+                    }
+                };
+                return VideoSourceBase;
+            })(Media.Imaging.ImageSource);
+            Videos.VideoSourceBase = VideoSourceBase;
+            Fayde.CoreLibrary.add(VideoSourceBase);
+        })(Videos = Media.Videos || (Media.Videos = {}));
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+})(Fayde || (Fayde = {}));
+/// <reference path="VideoSourceBase.ts"/>
+var Fayde;
+(function (Fayde) {
+    var Media;
+    (function (Media) {
+        var Videos;
+        (function (Videos) {
+            var VideoSource = (function (_super) {
+                __extends(VideoSource, _super);
+                function VideoSource(uri) {
+                    _super.call(this);
+                    this.VideoFailed = new nullstone.Event();
+                    this.VideoOpened = new nullstone.Event();
+                    if (uri)
+                        this.UriSource = uri;
+                }
+                VideoSource.prototype._UriSourceChanged = function (args) {
+                    var uri = args.NewValue;
+                    if (Fayde.Uri.isNullOrEmpty(uri))
+                        this.reset();
+                    else
+                        this.OnUriSourceChanged(args.OldValue, uri);
+                };
+                VideoSource.prototype.OnUriSourceChanged = function (oldValue, newValue) {
+                    if (!this.$element || !newValue)
+                        this.reset();
+                    this.$element.src = Fayde.TypeManager.resolveResource(newValue);
+                    this.$element.load();
+                    this.onVideoChanged();
+                };
+                VideoSource.prototype.onVideoErrored = function (e) {
+                    _super.prototype.onVideoErrored.call(this, e);
+                    this.VideoFailed.raise(this, null);
+                };
+                VideoSource.UriSourceProperty = DependencyProperty.RegisterFull("UriSource", function () { return Fayde.Uri; }, VideoSource, undefined, function (bi, args) { return bi._UriSourceChanged(args); }, undefined, true);
+                return VideoSource;
+            })(Videos.VideoSourceBase);
+            Videos.VideoSource = VideoSource;
+            Fayde.CoreLibrary.add(VideoSource);
+        })(Videos = Media.Videos || (Media.Videos = {}));
     })(Media = Fayde.Media || (Fayde.Media = {}));
 })(Fayde || (Fayde = {}));
 var Fayde;
