@@ -65,125 +65,6 @@ declare module Fayde.Clipboard {
         private $$notify;
     }
 }
-declare module Fayde.Collections {
-    enum CollectionChangedAction {
-        Add = 1,
-        Remove = 2,
-        Replace = 3,
-        Reset = 4,
-    }
-    class CollectionChangedEventArgs implements nullstone.IEventArgs {
-        Action: CollectionChangedAction;
-        OldStartingIndex: number;
-        NewStartingIndex: number;
-        OldItems: any[];
-        NewItems: any[];
-        static Reset(allValues: any[]): CollectionChangedEventArgs;
-        static Replace(newValue: any, oldValue: any, index: number): CollectionChangedEventArgs;
-        static Add(newValue: any, index: number): CollectionChangedEventArgs;
-        static AddRange(newValues: any[], index: number): CollectionChangedEventArgs;
-        static Remove(oldValue: any, index: number): CollectionChangedEventArgs;
-    }
-}
-declare module Fayde.Collections {
-    interface INotifyCollectionChanged {
-        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
-    }
-    var INotifyCollectionChanged_: nullstone.Interface<INotifyCollectionChanged>;
-}
-declare module Fayde {
-    class PropertyChangedEventArgs implements nullstone.IEventArgs {
-        PropertyName: string;
-        constructor(propertyName: string);
-    }
-    interface INotifyPropertyChanged {
-        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
-    }
-    var INotifyPropertyChanged_: nullstone.Interface<INotifyPropertyChanged>;
-}
-declare module Fayde.Collections {
-    class ObservableCollection<T> implements nullstone.IEnumerable<T>, nullstone.ICollection<T>, INotifyCollectionChanged, INotifyPropertyChanged {
-        private _ht;
-        getEnumerator(): nullstone.IEnumerator<T>;
-        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
-        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
-        Count: number;
-        ToArray(): T[];
-        GetValueAt(index: number): T;
-        SetValueAt(index: number, value: T): void;
-        Add(value: T): void;
-        AddRange(values: T[]): void;
-        Insert(index: number, value: T): void;
-        IndexOf(value: T): number;
-        Contains(value: T): boolean;
-        Remove(value: T): boolean;
-        RemoveAt(index: number): void;
-        Clear(): void;
-        private _RaisePropertyChanged(propertyName);
-    }
-}
-declare module Fayde.Collections {
-    class DeepObservableCollection<T> extends ObservableCollection<T> {
-        ItemPropertyChanged: nullstone.Event<ItemPropertyChangedEventArgs<T>>;
-        constructor();
-        private _OnCollectionChanged(sender, e);
-        private _OnItemPropertyChanged(sender, e);
-    }
-}
-declare module Fayde.Collections {
-    interface IFilterItemFunc<T> {
-        (item: T): boolean;
-    }
-    interface IFilterItemIndexFunc<T> {
-        (item: T, index: number): boolean;
-    }
-    class FilteredCollection<T> extends DeepObservableCollection<T> {
-        private _Source;
-        Source: DeepObservableCollection<T>;
-        private _Filter;
-        Filter: IFilterItemIndexFunc<T>;
-        constructor(filter?: IFilterItemFunc<T>, source?: DeepObservableCollection<T>);
-        constructor(filter?: IFilterItemIndexFunc<T>, source?: DeepObservableCollection<T>);
-        private _SetSource(source);
-        private _OnSourceCollectionChanged(sender, e);
-        private _OnSourceItemPropertyChanged(sender, e);
-        Update(): void;
-    }
-}
-declare module Fayde.Collections {
-    class ItemPropertyChangedEventArgs<T> extends PropertyChangedEventArgs {
-        Item: T;
-        constructor(item: T, propertyName: string);
-    }
-}
-declare module Fayde.Collections {
-    class ReadOnlyObservableCollection<T> implements nullstone.ICollection<T>, INotifyCollectionChanged, INotifyPropertyChanged {
-        Count: number;
-        private _Source;
-        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
-        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
-        constructor(source: ObservableCollection<T>);
-        GetValueAt(index: number): T;
-        getEnumerator(): nullstone.IEnumerator<T>;
-        ToArray(): T[];
-        IndexOf(value: T): number;
-        Contains(value: T): boolean;
-        private _OnCollectionChanged(sender, args);
-        private _OnPropertyChanged(sender, args);
-        SetValueAt(index: number, value: T): void;
-        Insert(index: number, value: T): void;
-        Add(value: T): void;
-        Remove(value: T): boolean;
-        RemoveAt(index: number): void;
-        Clear(): void;
-    }
-}
-interface ICloneable {
-    Clone(): any;
-}
-declare module Fayde {
-    function Clone(value: any): any;
-}
 declare module Fayde {
     interface IIsAttachedMonitor {
         Callback: (newIsAttached: boolean) => void;
@@ -394,32 +275,34 @@ declare module Fayde {
         ListenToChanged(propd: DependencyProperty, func: (sender, args: IDependencyPropertyChangedEventArgs) => void, closure?: any): Providers.IPropertyChangedListener;
     }
 }
-declare module Fayde.Markup {
-    class FrameworkTemplate extends DependencyObject {
-        private $$markup;
-        private $$resources;
-        Validate(): string;
-        GetVisualTree(bindingSource: DependencyObject): UIElement;
+declare module Fayde {
+    interface IUIReactionCallback<T> {
+        (updater: minerva.core.Updater, ov: T, nv: T, uie?: UIElement): void;
     }
-    function LoadXaml<T extends XamlObject>(app: Application, xaml: string): T;
-    function LoadXaml<T extends XamlObject>(app: Application, el: Element): T;
-    function Load<T extends XamlObject>(app: Application, xm: nullstone.markup.Markup<any>): T;
+    function UIReaction<TValue>(propd: DependencyProperty, callback?: IUIReactionCallback<TValue>, listen?: boolean, sync?: (src: TValue, dest: TValue) => void, instance?: any): any;
+    function UIReaction<TValue>(propd: DependencyProperty, callback?: IUIReactionCallback<TValue>, listen?: boolean, sync?: boolean, instance?: any): any;
 }
 declare module Fayde {
-    class DataTemplate extends Markup.FrameworkTemplate {
-        static DataTypeProperty: DependencyProperty;
-        DataType: Function;
+    function UIReactionAttached<TValue>(propd: DependencyProperty, callback?: IUIReactionCallback<TValue>): void;
+}
+declare module Fayde.Providers {
+    interface IInheritedStorage extends IPropertyStorage {
+        InheritedValue: any;
     }
-}
-interface IDependencyPropertyChangedEventArgs {
-    Property: DependencyProperty;
-    OldValue: any;
-    NewValue: any;
-}
-declare class DependencyPropertyChangedEventArgs implements nullstone.IEventArgs, IDependencyPropertyChangedEventArgs {
-    Property: DependencyProperty;
-    OldValue: any;
-    NewValue: any;
+    interface IIsPropertyInheritable {
+        IsInheritable(propd: DependencyProperty): boolean;
+    }
+    class InheritedStore extends PropertyStore {
+        static Instance: InheritedStore;
+        GetValue(storage: IInheritedStorage): any;
+        GetValuePrecedence(storage: IInheritedStorage): PropertyPrecedence;
+        OnPropertyChanged(storage: IPropertyStorage, effectivePrecedence: PropertyPrecedence, oldValue: any, newValue: any): IDependencyPropertyChangedEventArgs;
+        CreateStorage(dobj: DependencyObject, propd: DependencyProperty): IInheritedStorage;
+        static PropagateInheritedOnAdd(dobj: DependencyObject, subtreeNode: DONode): void;
+        static ClearInheritedOnRemove(dobj: DependencyObject, subtreeNode: DONode): void;
+        private Propagate(ownerNode, propd, newValue);
+        private SetInheritedValue(don, propd, newValue);
+    }
 }
 declare module Fayde {
     enum Orientation {
@@ -499,35 +382,6 @@ declare module Fayde {
     enum DeviceType {
         PC = 0,
         Phone = 1,
-    }
-}
-declare module Fayde {
-    interface IUIReactionCallback<T> {
-        (updater: minerva.core.Updater, ov: T, nv: T, uie?: UIElement): void;
-    }
-    function UIReaction<TValue>(propd: DependencyProperty, callback?: IUIReactionCallback<TValue>, listen?: boolean, sync?: (src: TValue, dest: TValue) => void, instance?: any): any;
-    function UIReaction<TValue>(propd: DependencyProperty, callback?: IUIReactionCallback<TValue>, listen?: boolean, sync?: boolean, instance?: any): any;
-}
-declare module Fayde {
-    function UIReactionAttached<TValue>(propd: DependencyProperty, callback?: IUIReactionCallback<TValue>): void;
-}
-declare module Fayde.Providers {
-    interface IInheritedStorage extends IPropertyStorage {
-        InheritedValue: any;
-    }
-    interface IIsPropertyInheritable {
-        IsInheritable(propd: DependencyProperty): boolean;
-    }
-    class InheritedStore extends PropertyStore {
-        static Instance: InheritedStore;
-        GetValue(storage: IInheritedStorage): any;
-        GetValuePrecedence(storage: IInheritedStorage): PropertyPrecedence;
-        OnPropertyChanged(storage: IPropertyStorage, effectivePrecedence: PropertyPrecedence, oldValue: any, newValue: any): IDependencyPropertyChangedEventArgs;
-        CreateStorage(dobj: DependencyObject, propd: DependencyProperty): IInheritedStorage;
-        static PropagateInheritedOnAdd(dobj: DependencyObject, subtreeNode: DONode): void;
-        static ClearInheritedOnRemove(dobj: DependencyObject, subtreeNode: DONode): void;
-        private Propagate(ownerNode, propd, newValue);
-        private SetInheritedValue(don, propd, newValue);
     }
 }
 declare module Fayde {
@@ -773,152 +627,6 @@ declare module Fayde {
         UpdateLayout(): void;
     }
 }
-declare module Fayde {
-    class HierarchicalDataTemplate extends DataTemplate {
-        static ItemsSourceProperty: DependencyProperty;
-        static ItemTemplateProperty: DependencyProperty;
-        static ItemContainerStyleProperty: DependencyProperty;
-        ItemsSource: nullstone.IEnumerable<any>;
-        ItemTemplate: DataTemplate;
-        ItemContainerStyle: Style;
-    }
-}
-declare module Fayde {
-    class LayoutInformation {
-        static GetLayoutClip(uie: UIElement): Media.Geometry;
-        static GetLayoutSlot(uie: UIElement): minerva.Rect;
-    }
-}
-declare module Fayde {
-    class NameScope {
-        IsRoot: boolean;
-        private XNodes;
-        constructor(isRoot?: boolean);
-        FindName(name: string): XamlNode;
-        RegisterName(name: string, xnode: XamlNode): void;
-        UnregisterName(name: string): void;
-        Absorb(otherNs: NameScope): void;
-    }
-}
-declare module Fayde {
-    class XamlObjectCollection<T extends XamlObject> extends XamlObject implements nullstone.ICollection<T> {
-        _ht: Array<T>;
-        AttachTo(xobj: XamlObject): void;
-        Count: number;
-        GetRange(startIndex: number, endIndex: number): T[];
-        GetValueAt(index: number): T;
-        SetValueAt(index: number, value: T): boolean;
-        Add(value: T): number;
-        Insert(index: number, value: T): boolean;
-        Remove(value: T): boolean;
-        RemoveAt(index: number): boolean;
-        Clear(): boolean;
-        IndexOf(value: T): number;
-        Contains(value: T): boolean;
-        CanAdd(value: T): boolean;
-        AddingToCollection(value: T, error: BError): boolean;
-        RemovedFromCollection(value: T, isValueSafe: boolean): void;
-        getEnumerator(reverse?: boolean): nullstone.IEnumerator<T>;
-        GetNodeEnumerator<U extends XamlNode>(reverse?: boolean): nullstone.IEnumerator<U>;
-        _RaiseItemAdded(value: T, index: number): void;
-        _RaiseItemRemoved(value: T, index: number): void;
-        _RaiseItemReplaced(removed: T, added: T, index: number): void;
-        _RaiseCleared(old: T[]): void;
-        CloneCore(source: XamlObjectCollection<T>): void;
-        ToArray(): T[];
-    }
-}
-declare module Fayde {
-    interface IResourcable {
-        Resources: Fayde.ResourceDictionary;
-    }
-    class ResourceDictionaryCollection extends XamlObjectCollection<ResourceDictionary> {
-        Get(key: any): any;
-        AddingToCollection(value: ResourceDictionary, error: BError): boolean;
-        private _AssertNoCycles(subtreeRoot, firstAncestorNode, error);
-    }
-    class ResourceDictionary extends XamlObject implements nullstone.IEnumerable<any> {
-        private _Keys;
-        private _Values;
-        private _IsSourceLoaded;
-        private _SourceBacking;
-        private _MergedDictionaries;
-        MergedDictionaries: ResourceDictionaryCollection;
-        Source: Uri;
-        App: Application;
-        Count: number;
-        AttachTo(xobj: XamlObject): void;
-        Contains(key: any): boolean;
-        Get(key: any): any;
-        Set(key: any, value: any): boolean;
-        Remove(key: any): boolean;
-        getEnumerator(reverse?: boolean): nullstone.IEnumerator<any>;
-        GetNodeEnumerator<U extends XamlNode>(reverse?: boolean): nullstone.IEnumerator<U>;
-        private _GetFromSource(key);
-    }
-}
-declare module Fayde {
-    class RoutedEvent<T extends RoutedEventArgs> extends nullstone.Event<T> {
-    }
-}
-declare module Fayde {
-    class RoutedEventArgs implements nullstone.IEventArgs {
-        Handled: boolean;
-        Source: any;
-        OriginalSource: any;
-    }
-}
-declare module Fayde {
-    class RoutedPropertyChangedEvent<T> extends RoutedEvent<RoutedPropertyChangedEventArgs<T>> {
-    }
-    class RoutedPropertyChangedEventArgs<T> extends RoutedEventArgs {
-        OldValue: T;
-        NewValue: T;
-        constructor(oldValue: T, newValue: T);
-    }
-}
-declare module Fayde {
-    class RoutedPropertyChangingEvent<T> extends RoutedEvent<RoutedPropertyChangingEventArgs<T>> {
-    }
-    class RoutedPropertyChangingEventArgs<T> extends RoutedEventArgs {
-        Property: DependencyProperty;
-        OldValue: T;
-        NewValue: T;
-        private _IsCancelable;
-        IsCancellable: boolean;
-        private _Cancel;
-        Cancel: boolean;
-        InCoercion: boolean;
-        constructor(propd: DependencyProperty, oldValue: T, newValue: T, isCancelable: boolean);
-    }
-}
-declare module Fayde {
-    class SetterCollection extends XamlObjectCollection<Setter> {
-        private _IsSealed;
-        XamlNode: XamlNode;
-        Seal(): void;
-        AddingToCollection(value: Setter, error: BError): boolean;
-        private _ValidateSetter(setter, error);
-    }
-    class Setter extends DependencyObject {
-        private _IsSealed;
-        static PropertyProperty: DependencyProperty;
-        static ValueProperty: DependencyProperty;
-        static ConvertedValueProperty: DependencyProperty;
-        Property: DependencyProperty;
-        Value: any;
-        ConvertedValue: any;
-        Seal(): void;
-        static Compare(setter1: Setter, setter2: Setter): number;
-    }
-}
-declare module Fayde {
-    class SizeChangedEventArgs extends RoutedEventArgs {
-        PreviousSize: minerva.Size;
-        NewSize: minerva.Size;
-        constructor(previousSize: minerva.Size, newSize: minerva.Size);
-    }
-}
 declare module Fayde.Markup {
     interface IContentAnnotation {
         (type: Function, prop: DependencyProperty): any;
@@ -930,114 +638,6 @@ declare module Fayde.Markup {
         Get(type: Function): DependencyProperty;
     }
     var TextContent: ITextContentAnnotation;
-}
-declare module Fayde {
-    class Style extends DependencyObject {
-        private _IsSealed;
-        static SettersProperty: ImmutableDependencyProperty<SetterCollection>;
-        static BasedOnProperty: DependencyProperty;
-        static TargetTypeProperty: DependencyProperty;
-        Setters: SetterCollection;
-        BasedOn: Style;
-        TargetType: Function;
-        constructor();
-        Seal(): void;
-        Validate(instance: DependencyObject, error: BError): boolean;
-    }
-}
-declare module Fayde {
-    class TemplateBinding implements nullstone.markup.IMarkupExtension {
-        SourceProperty: string;
-        init(val: string): void;
-        transmute(os: any[]): any;
-    }
-}
-declare module Fayde {
-    class TriggerAction extends DependencyObject {
-        Fire(): void;
-    }
-    class TriggerActionCollection extends XamlObjectCollection<TriggerAction> {
-        Fire(): void;
-    }
-    class TriggerBase extends DependencyObject {
-        Attach(target: XamlObject): void;
-        Detach(target: XamlObject): void;
-    }
-    class EventTrigger extends TriggerBase {
-        static ActionsProperty: ImmutableDependencyProperty<TriggerActionCollection>;
-        static RoutedEventProperty: DependencyProperty;
-        Actions: TriggerActionCollection;
-        RoutedEvent: string;
-        private _IsAttached;
-        constructor();
-        Attach(target: XamlObject): void;
-        Detach(target: XamlObject): void;
-        private _FireActions(sender, e);
-        private _ParseEventName(target);
-    }
-    class TriggerCollection extends XamlObjectCollection<TriggerBase> {
-        XamlNode: XamlNode;
-        private ParentXamlObject;
-        AddingToCollection(value: TriggerBase, error: BError): boolean;
-        RemovedFromCollection(value: TriggerBase, isValueSafe: boolean): void;
-        AttachTarget(target: XamlObject): void;
-        DetachTarget(target: XamlObject): void;
-    }
-}
-declare module Fayde {
-    class VisualTreeEnum {
-        static GetAncestors(uie: UIElement): nullstone.IEnumerable<UIElement>;
-    }
-}
-declare module Fayde {
-    class VisualTreeHelper {
-        static GetParent(d: DependencyObject): DependencyObject;
-        static GetParentOfType<T extends DependencyObject>(d: DependencyObject, type: any): T;
-        static GetRoot(d: DependencyObject): DependencyObject;
-        static GetChild(d: DependencyObject, childIndex: number): DependencyObject;
-        static GetChildrenCount(d: DependencyObject): number;
-        static FindElementsInHostCoordinates(pos: Point, uie: UIElement): UIElement[];
-        static __Debug(ui: any, func?: (uin: UINode, tabIndex: number) => string): string;
-        private static __DebugTree(curNode, matchNode, tabIndex, func);
-        private static __DebugUIElement(uin, tabIndex);
-        private static __DebugGrid(uin, tabIndex);
-        private static __DebugUIElementLayout(uin, tabIndex);
-        static __DebugLayout(ui: any): string;
-        private static __GetById(id);
-    }
-}
-declare module Fayde {
-    enum VisualTreeDirection {
-        Logical = 0,
-        Reverse = 1,
-        ZForward = 2,
-        ZReverse = 3,
-    }
-    interface IWalker {
-        Step(): any;
-    }
-    interface IStyleWalker extends IWalker {
-        Step(): Setter;
-    }
-    interface IDeepTreeWalker extends IWalker {
-        Step(): UINode;
-        SkipBranch(): any;
-    }
-    interface ITabNavigationWalker {
-        FocusChild(): boolean;
-    }
-    function SingleStyleWalker(style: Style): IStyleWalker;
-    function MultipleStylesWalker(styles: Style[]): IStyleWalker;
-    function DeepTreeWalker(topNode: UINode, direction?: VisualTreeDirection): IDeepTreeWalker;
-    class TabNavigationWalker implements ITabNavigationWalker {
-        private _Root;
-        private _Current;
-        private _Forwards;
-        private _TabSorted;
-        constructor(root: UINode, cur: UINode, forwards: boolean);
-        FocusChild(): boolean;
-        static Focus(uin: UINode, forwards?: boolean): boolean;
-    }
 }
 declare module Fayde.Controls {
     class Border extends FrameworkElement {
@@ -1321,6 +921,34 @@ declare module Fayde.Controls {
         constructor();
         OnApplyTemplate(): void;
         OnIsEnabledChanged(e: IDependencyPropertyChangedEventArgs): void;
+    }
+}
+declare module Fayde {
+    class XamlObjectCollection<T extends XamlObject> extends XamlObject implements nullstone.ICollection<T> {
+        _ht: Array<T>;
+        AttachTo(xobj: XamlObject): void;
+        Count: number;
+        GetRange(startIndex: number, endIndex: number): T[];
+        GetValueAt(index: number): T;
+        SetValueAt(index: number, value: T): boolean;
+        Add(value: T): number;
+        Insert(index: number, value: T): boolean;
+        Remove(value: T): boolean;
+        RemoveAt(index: number): boolean;
+        Clear(): boolean;
+        IndexOf(value: T): number;
+        Contains(value: T): boolean;
+        CanAdd(value: T): boolean;
+        AddingToCollection(value: T, error: BError): boolean;
+        RemovedFromCollection(value: T, isValueSafe: boolean): void;
+        getEnumerator(reverse?: boolean): nullstone.IEnumerator<T>;
+        GetNodeEnumerator<U extends XamlNode>(reverse?: boolean): nullstone.IEnumerator<U>;
+        _RaiseItemAdded(value: T, index: number): void;
+        _RaiseItemRemoved(value: T, index: number): void;
+        _RaiseItemReplaced(removed: T, added: T, index: number): void;
+        _RaiseCleared(old: T[]): void;
+        CloneCore(source: XamlObjectCollection<T>): void;
+        ToArray(): T[];
     }
 }
 declare module Fayde.Controls {
@@ -1882,6 +1510,17 @@ declare module Fayde.Controls {
         OnMouseLeftButtonUp(e: Input.MouseButtonEventArgs): void;
     }
 }
+declare module Fayde.Markup {
+    class FrameworkTemplate extends DependencyObject {
+        private $$markup;
+        private $$resources;
+        Validate(): string;
+        GetVisualTree(bindingSource: DependencyObject): UIElement;
+    }
+    function LoadXaml<T extends XamlObject>(app: Application, xaml: string): T;
+    function LoadXaml<T extends XamlObject>(app: Application, el: Element): T;
+    function Load<T extends XamlObject>(app: Application, xm: nullstone.markup.Markup<any>): T;
+}
 declare module Fayde.Controls {
     class ControlTemplate extends Markup.FrameworkTemplate {
         static TargetTypeProperty: DependencyProperty;
@@ -2208,6 +1847,13 @@ declare module Fayde.Controls {
         OnVideoChanged(source: Media.Videos.VideoSourceBase): void;
         Play(): void;
         Pause(): void;
+    }
+}
+declare module Fayde {
+    class RoutedEventArgs implements nullstone.IEventArgs {
+        Handled: boolean;
+        Source: any;
+        OriginalSource: any;
     }
 }
 declare module Fayde.Input {
@@ -2690,113 +2336,358 @@ declare module Fayde.Controls {
         constructor();
     }
 }
-declare module Fayde.Documents {
-    interface ITextReactionCallback<T> {
-        (updater: minerva.text.TextUpdater, ov: T, nv: T, te?: TextElement): void;
+declare module Fayde.Collections {
+    enum CollectionChangedAction {
+        Add = 1,
+        Remove = 2,
+        Replace = 3,
+        Reset = 4,
     }
-    function TextReaction<TValue>(propd: DependencyProperty, callback?: ITextReactionCallback<TValue>, listen?: boolean, sync?: any, instance?: any): void;
+    class CollectionChangedEventArgs implements nullstone.IEventArgs {
+        Action: CollectionChangedAction;
+        OldStartingIndex: number;
+        NewStartingIndex: number;
+        OldItems: any[];
+        NewItems: any[];
+        static Reset(allValues: any[]): CollectionChangedEventArgs;
+        static Replace(newValue: any, oldValue: any, index: number): CollectionChangedEventArgs;
+        static Add(newValue: any, index: number): CollectionChangedEventArgs;
+        static AddRange(newValues: any[], index: number): CollectionChangedEventArgs;
+        static Remove(oldValue: any, index: number): CollectionChangedEventArgs;
+    }
 }
-declare module Fayde.Documents {
-    class TextElementNode extends DONode {
-        XObject: TextElement;
-        constructor(xobj: TextElement, inheritedWalkProperty: string);
-        InheritedWalkProperty: string;
-        GetInheritedEnumerator(): nullstone.IEnumerator<DONode>;
+declare module Fayde.Collections {
+    interface INotifyCollectionChanged {
+        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
     }
-    class TextElement extends DependencyObject implements Providers.IIsPropertyInheritable {
-        XamlNode: TextElementNode;
-        TextUpdater: minerva.text.TextUpdater;
-        CreateNode(): TextElementNode;
+    var INotifyCollectionChanged_: nullstone.Interface<INotifyCollectionChanged>;
+}
+declare module Fayde {
+    class PropertyChangedEventArgs implements nullstone.IEventArgs {
+        PropertyName: string;
+        constructor(propertyName: string);
+    }
+    interface INotifyPropertyChanged {
+        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
+    }
+    var INotifyPropertyChanged_: nullstone.Interface<INotifyPropertyChanged>;
+}
+declare module Fayde.Collections {
+    class ObservableCollection<T> implements nullstone.IEnumerable<T>, nullstone.ICollection<T>, INotifyCollectionChanged, INotifyPropertyChanged {
+        private _ht;
+        getEnumerator(): nullstone.IEnumerator<T>;
+        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
+        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
+        Count: number;
+        ToArray(): T[];
+        GetValueAt(index: number): T;
+        SetValueAt(index: number, value: T): void;
+        Add(value: T): void;
+        AddRange(values: T[]): void;
+        Insert(index: number, value: T): void;
+        IndexOf(value: T): number;
+        Contains(value: T): boolean;
+        Remove(value: T): boolean;
+        RemoveAt(index: number): void;
+        Clear(): void;
+        private _RaisePropertyChanged(propertyName);
+    }
+}
+declare module Fayde.Collections {
+    class DeepObservableCollection<T> extends ObservableCollection<T> {
+        ItemPropertyChanged: nullstone.Event<ItemPropertyChangedEventArgs<T>>;
         constructor();
-        static FontFamilyProperty: DependencyProperty;
-        static FontSizeProperty: DependencyProperty;
-        static FontStretchProperty: DependencyProperty;
-        static FontStyleProperty: DependencyProperty;
-        static FontWeightProperty: DependencyProperty;
-        static ForegroundProperty: DependencyProperty;
-        static LanguageProperty: DependencyProperty;
-        Foreground: Media.Brush;
-        FontFamily: string;
-        FontStretch: string;
-        FontStyle: string;
-        FontWeight: FontWeight;
-        FontSize: number;
-        Language: string;
-        IsInheritable(propd: DependencyProperty): boolean;
-        _SerializeText(): string;
-        Start: number;
-        Equals(te: TextElement): boolean;
+        private _OnCollectionChanged(sender, e);
+        private _OnItemPropertyChanged(sender, e);
     }
 }
-declare module Fayde.Documents {
-    class Block extends TextElement {
+declare module Fayde.Collections {
+    interface IFilterItemFunc<T> {
+        (item: T): boolean;
+    }
+    interface IFilterItemIndexFunc<T> {
+        (item: T, index: number): boolean;
+    }
+    class FilteredCollection<T> extends DeepObservableCollection<T> {
+        private _Source;
+        Source: DeepObservableCollection<T>;
+        private _Filter;
+        Filter: IFilterItemIndexFunc<T>;
+        constructor(filter?: IFilterItemFunc<T>, source?: DeepObservableCollection<T>);
+        constructor(filter?: IFilterItemIndexFunc<T>, source?: DeepObservableCollection<T>);
+        private _SetSource(source);
+        private _OnSourceCollectionChanged(sender, e);
+        private _OnSourceItemPropertyChanged(sender, e);
+        Update(): void;
     }
 }
-declare module Fayde.Documents {
-    class BlockCollection extends XamlObjectCollection<Block> {
-        _RaiseItemAdded(value: Block, index: number): void;
-        _RaiseItemRemoved(value: Block, index: number): void;
+declare module Fayde.Collections {
+    class ItemPropertyChangedEventArgs<T> extends PropertyChangedEventArgs {
+        Item: T;
+        constructor(item: T, propertyName: string);
     }
 }
-declare module Fayde.Documents {
-    class Inline extends TextElement {
-        static TextDecorationsProperty: DependencyProperty;
-        TextDecorations: TextDecorations;
+declare module Fayde.Collections {
+    class ReadOnlyObservableCollection<T> implements nullstone.ICollection<T>, INotifyCollectionChanged, INotifyPropertyChanged {
+        Count: number;
+        private _Source;
+        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
+        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
+        constructor(source: ObservableCollection<T>);
+        GetValueAt(index: number): T;
+        getEnumerator(): nullstone.IEnumerator<T>;
+        ToArray(): T[];
+        IndexOf(value: T): number;
+        Contains(value: T): boolean;
+        private _OnCollectionChanged(sender, args);
+        private _OnPropertyChanged(sender, args);
+        SetValueAt(index: number, value: T): void;
+        Insert(index: number, value: T): void;
+        Add(value: T): void;
+        Remove(value: T): boolean;
+        RemoveAt(index: number): void;
+        Clear(): void;
+    }
+}
+interface ICloneable {
+    Clone(): any;
+}
+declare module Fayde {
+    function Clone(value: any): any;
+}
+declare module Fayde {
+    class DataTemplate extends Markup.FrameworkTemplate {
+        static DataTypeProperty: DependencyProperty;
+        DataType: Function;
+    }
+}
+interface IDependencyPropertyChangedEventArgs {
+    Property: DependencyProperty;
+    OldValue: any;
+    NewValue: any;
+}
+declare class DependencyPropertyChangedEventArgs implements nullstone.IEventArgs, IDependencyPropertyChangedEventArgs {
+    Property: DependencyProperty;
+    OldValue: any;
+    NewValue: any;
+}
+declare module Fayde {
+    class HierarchicalDataTemplate extends DataTemplate {
+        static ItemsSourceProperty: DependencyProperty;
+        static ItemTemplateProperty: DependencyProperty;
+        static ItemContainerStyleProperty: DependencyProperty;
+        ItemsSource: nullstone.IEnumerable<any>;
+        ItemTemplate: DataTemplate;
+        ItemContainerStyle: Style;
+    }
+}
+declare module Fayde {
+    class LayoutInformation {
+        static GetLayoutClip(uie: UIElement): Media.Geometry;
+        static GetLayoutSlot(uie: UIElement): minerva.Rect;
+    }
+}
+declare module Fayde {
+    class NameScope {
+        IsRoot: boolean;
+        private XNodes;
+        constructor(isRoot?: boolean);
+        FindName(name: string): XamlNode;
+        RegisterName(name: string, xnode: XamlNode): void;
+        UnregisterName(name: string): void;
+        Absorb(otherNs: NameScope): void;
+    }
+}
+declare module Fayde {
+    interface IResourcable {
+        Resources: Fayde.ResourceDictionary;
+    }
+    class ResourceDictionaryCollection extends XamlObjectCollection<ResourceDictionary> {
+        Get(key: any): any;
+        AddingToCollection(value: ResourceDictionary, error: BError): boolean;
+        private _AssertNoCycles(subtreeRoot, firstAncestorNode, error);
+    }
+    class ResourceDictionary extends XamlObject implements nullstone.IEnumerable<any> {
+        private _Keys;
+        private _Values;
+        private _IsSourceLoaded;
+        private _SourceBacking;
+        private _MergedDictionaries;
+        MergedDictionaries: ResourceDictionaryCollection;
+        Source: Uri;
+        App: Application;
+        Count: number;
+        AttachTo(xobj: XamlObject): void;
+        Contains(key: any): boolean;
+        Get(key: any): any;
+        Set(key: any, value: any): boolean;
+        Remove(key: any): boolean;
+        getEnumerator(reverse?: boolean): nullstone.IEnumerator<any>;
+        GetNodeEnumerator<U extends XamlNode>(reverse?: boolean): nullstone.IEnumerator<U>;
+        private _GetFromSource(key);
+    }
+}
+declare module Fayde {
+    class RoutedEvent<T extends RoutedEventArgs> extends nullstone.Event<T> {
+    }
+}
+declare module Fayde {
+    class RoutedPropertyChangedEvent<T> extends RoutedEvent<RoutedPropertyChangedEventArgs<T>> {
+    }
+    class RoutedPropertyChangedEventArgs<T> extends RoutedEventArgs {
+        OldValue: T;
+        NewValue: T;
+        constructor(oldValue: T, newValue: T);
+    }
+}
+declare module Fayde {
+    class RoutedPropertyChangingEvent<T> extends RoutedEvent<RoutedPropertyChangingEventArgs<T>> {
+    }
+    class RoutedPropertyChangingEventArgs<T> extends RoutedEventArgs {
+        Property: DependencyProperty;
+        OldValue: T;
+        NewValue: T;
+        private _IsCancelable;
+        IsCancellable: boolean;
+        private _Cancel;
+        Cancel: boolean;
+        InCoercion: boolean;
+        constructor(propd: DependencyProperty, oldValue: T, newValue: T, isCancelable: boolean);
+    }
+}
+declare module Fayde {
+    class SetterCollection extends XamlObjectCollection<Setter> {
+        private _IsSealed;
+        XamlNode: XamlNode;
+        Seal(): void;
+        AddingToCollection(value: Setter, error: BError): boolean;
+        private _ValidateSetter(setter, error);
+    }
+    class Setter extends DependencyObject {
+        private _IsSealed;
+        static PropertyProperty: DependencyProperty;
+        static ValueProperty: DependencyProperty;
+        static ConvertedValueProperty: DependencyProperty;
+        Property: DependencyProperty;
+        Value: any;
+        ConvertedValue: any;
+        Seal(): void;
+        static Compare(setter1: Setter, setter2: Setter): number;
+    }
+}
+declare module Fayde {
+    class SizeChangedEventArgs extends RoutedEventArgs {
+        PreviousSize: minerva.Size;
+        NewSize: minerva.Size;
+        constructor(previousSize: minerva.Size, newSize: minerva.Size);
+    }
+}
+declare module Fayde {
+    class Style extends DependencyObject {
+        private _IsSealed;
+        static SettersProperty: ImmutableDependencyProperty<SetterCollection>;
+        static BasedOnProperty: DependencyProperty;
+        static TargetTypeProperty: DependencyProperty;
+        Setters: SetterCollection;
+        BasedOn: Style;
+        TargetType: Function;
         constructor();
-        Equals(inline: Inline): boolean;
-        IsInheritable(propd: DependencyProperty): boolean;
+        Seal(): void;
+        Validate(instance: DependencyObject, error: BError): boolean;
     }
 }
-declare module Fayde.Documents {
-    class InlineCollection extends XamlObjectCollection<Inline> {
-        _RaiseItemAdded(value: Inline, index: number): void;
-        _RaiseItemRemoved(value: Inline, index: number): void;
+declare module Fayde {
+    class TemplateBinding implements nullstone.markup.IMarkupExtension {
+        SourceProperty: string;
+        init(val: string): void;
+        transmute(os: any[]): any;
     }
 }
-declare module Fayde.Documents {
-    class LineBreak extends Inline {
+declare module Fayde {
+    class TriggerAction extends DependencyObject {
+        Fire(): void;
     }
-}
-declare module Fayde.Documents {
-    class Paragraph extends Block {
-        CreateNode(): TextElementNode;
-        static InlinesProperty: ImmutableDependencyProperty<InlineCollection>;
-        Inlines: InlineCollection;
+    class TriggerActionCollection extends XamlObjectCollection<TriggerAction> {
+        Fire(): void;
+    }
+    class TriggerBase extends DependencyObject {
+        Attach(target: XamlObject): void;
+        Detach(target: XamlObject): void;
+    }
+    class EventTrigger extends TriggerBase {
+        static ActionsProperty: ImmutableDependencyProperty<TriggerActionCollection>;
+        static RoutedEventProperty: DependencyProperty;
+        Actions: TriggerActionCollection;
+        RoutedEvent: string;
+        private _IsAttached;
         constructor();
-        InlinesChanged(inline: Inline, isAdd: boolean): void;
+        Attach(target: XamlObject): void;
+        Detach(target: XamlObject): void;
+        private _FireActions(sender, e);
+        private _ParseEventName(target);
+    }
+    class TriggerCollection extends XamlObjectCollection<TriggerBase> {
+        XamlNode: XamlNode;
+        private ParentXamlObject;
+        AddingToCollection(value: TriggerBase, error: BError): boolean;
+        RemovedFromCollection(value: TriggerBase, isValueSafe: boolean): void;
+        AttachTarget(target: XamlObject): void;
+        DetachTarget(target: XamlObject): void;
     }
 }
-declare module Fayde.Documents {
-    class Run extends Inline implements Providers.IIsPropertyInheritable {
-        static FlowDirectionProperty: DependencyProperty;
-        static TextProperty: DependencyProperty;
-        FlowDirection: FlowDirection;
-        Text: string;
-        _SerializeText(): string;
-        IsInheritable(propd: DependencyProperty): boolean;
+declare module Fayde {
+    class VisualTreeEnum {
+        static GetAncestors(uie: UIElement): nullstone.IEnumerable<UIElement>;
     }
 }
-declare module Fayde.Documents {
-    class Section extends TextElement {
-        CreateNode(): TextElementNode;
-        static BlocksProperty: ImmutableDependencyProperty<BlockCollection>;
-        Blocks: BlockCollection;
-        constructor();
-        BlocksChanged(block: Block, isAdd: boolean): void;
+declare module Fayde {
+    class VisualTreeHelper {
+        static GetParent(d: DependencyObject): DependencyObject;
+        static GetParentOfType<T extends DependencyObject>(d: DependencyObject, type: any): T;
+        static GetRoot(d: DependencyObject): DependencyObject;
+        static GetChild(d: DependencyObject, childIndex: number): DependencyObject;
+        static GetChildrenCount(d: DependencyObject): number;
+        static FindElementsInHostCoordinates(pos: Point, uie: UIElement): UIElement[];
+        static __Debug(ui: any, func?: (uin: UINode, tabIndex: number) => string): string;
+        private static __DebugTree(curNode, matchNode, tabIndex, func);
+        private static __DebugUIElement(uin, tabIndex);
+        private static __DebugGrid(uin, tabIndex);
+        private static __DebugUIElementLayout(uin, tabIndex);
+        static __DebugLayout(ui: any): string;
+        private static __GetById(id);
     }
 }
-declare module Fayde.Documents {
-    class Span extends Inline {
-        CreateNode(): TextElementNode;
-        static InlinesProperty: ImmutableDependencyProperty<InlineCollection>;
-        Inlines: InlineCollection;
-        constructor();
-        _SerializeText(): string;
-        InlinesChanged(inline: Inline, isAdd: boolean): void;
+declare module Fayde {
+    enum VisualTreeDirection {
+        Logical = 0,
+        Reverse = 1,
+        ZForward = 2,
+        ZReverse = 3,
     }
-}
-declare module Fayde.Documents {
-    class Underline extends Span {
+    interface IWalker {
+        Step(): any;
+    }
+    interface IStyleWalker extends IWalker {
+        Step(): Setter;
+    }
+    interface IDeepTreeWalker extends IWalker {
+        Step(): UINode;
+        SkipBranch(): any;
+    }
+    interface ITabNavigationWalker {
+        FocusChild(): boolean;
+    }
+    function SingleStyleWalker(style: Style): IStyleWalker;
+    function MultipleStylesWalker(styles: Style[]): IStyleWalker;
+    function DeepTreeWalker(topNode: UINode, direction?: VisualTreeDirection): IDeepTreeWalker;
+    class TabNavigationWalker implements ITabNavigationWalker {
+        private _Root;
+        private _Current;
+        private _Forwards;
+        private _TabSorted;
+        constructor(root: UINode, cur: UINode, forwards: boolean);
+        FocusChild(): boolean;
+        static Focus(uin: UINode, forwards?: boolean): boolean;
     }
 }
 declare module Fayde.Data {
@@ -2925,6 +2816,115 @@ declare module Fayde.Data {
         transmute(os: any[]): any;
         Clone(): RelativeSource;
         Find(target: XamlObject): XamlObject;
+    }
+}
+declare module Fayde.Documents {
+    interface ITextReactionCallback<T> {
+        (updater: minerva.text.TextUpdater, ov: T, nv: T, te?: TextElement): void;
+    }
+    function TextReaction<TValue>(propd: DependencyProperty, callback?: ITextReactionCallback<TValue>, listen?: boolean, sync?: any, instance?: any): void;
+}
+declare module Fayde.Documents {
+    class TextElementNode extends DONode {
+        XObject: TextElement;
+        constructor(xobj: TextElement, inheritedWalkProperty: string);
+        InheritedWalkProperty: string;
+        GetInheritedEnumerator(): nullstone.IEnumerator<DONode>;
+    }
+    class TextElement extends DependencyObject implements Providers.IIsPropertyInheritable {
+        XamlNode: TextElementNode;
+        TextUpdater: minerva.text.TextUpdater;
+        CreateNode(): TextElementNode;
+        constructor();
+        static FontFamilyProperty: DependencyProperty;
+        static FontSizeProperty: DependencyProperty;
+        static FontStretchProperty: DependencyProperty;
+        static FontStyleProperty: DependencyProperty;
+        static FontWeightProperty: DependencyProperty;
+        static ForegroundProperty: DependencyProperty;
+        static LanguageProperty: DependencyProperty;
+        Foreground: Media.Brush;
+        FontFamily: string;
+        FontStretch: string;
+        FontStyle: string;
+        FontWeight: FontWeight;
+        FontSize: number;
+        Language: string;
+        IsInheritable(propd: DependencyProperty): boolean;
+        _SerializeText(): string;
+        Start: number;
+        Equals(te: TextElement): boolean;
+    }
+}
+declare module Fayde.Documents {
+    class Block extends TextElement {
+    }
+}
+declare module Fayde.Documents {
+    class BlockCollection extends XamlObjectCollection<Block> {
+        _RaiseItemAdded(value: Block, index: number): void;
+        _RaiseItemRemoved(value: Block, index: number): void;
+    }
+}
+declare module Fayde.Documents {
+    class Inline extends TextElement {
+        static TextDecorationsProperty: DependencyProperty;
+        TextDecorations: TextDecorations;
+        constructor();
+        Equals(inline: Inline): boolean;
+        IsInheritable(propd: DependencyProperty): boolean;
+    }
+}
+declare module Fayde.Documents {
+    class InlineCollection extends XamlObjectCollection<Inline> {
+        _RaiseItemAdded(value: Inline, index: number): void;
+        _RaiseItemRemoved(value: Inline, index: number): void;
+    }
+}
+declare module Fayde.Documents {
+    class LineBreak extends Inline {
+    }
+}
+declare module Fayde.Documents {
+    class Paragraph extends Block {
+        CreateNode(): TextElementNode;
+        static InlinesProperty: ImmutableDependencyProperty<InlineCollection>;
+        Inlines: InlineCollection;
+        constructor();
+        InlinesChanged(inline: Inline, isAdd: boolean): void;
+    }
+}
+declare module Fayde.Documents {
+    class Run extends Inline implements Providers.IIsPropertyInheritable {
+        static FlowDirectionProperty: DependencyProperty;
+        static TextProperty: DependencyProperty;
+        FlowDirection: FlowDirection;
+        Text: string;
+        _SerializeText(): string;
+        IsInheritable(propd: DependencyProperty): boolean;
+    }
+}
+declare module Fayde.Documents {
+    class Section extends TextElement {
+        CreateNode(): TextElementNode;
+        static BlocksProperty: ImmutableDependencyProperty<BlockCollection>;
+        Blocks: BlockCollection;
+        constructor();
+        BlocksChanged(block: Block, isAdd: boolean): void;
+    }
+}
+declare module Fayde.Documents {
+    class Span extends Inline {
+        CreateNode(): TextElementNode;
+        static InlinesProperty: ImmutableDependencyProperty<InlineCollection>;
+        Inlines: InlineCollection;
+        constructor();
+        _SerializeText(): string;
+        InlinesChanged(inline: Inline, isAdd: boolean): void;
+    }
+}
+declare module Fayde.Documents {
+    class Underline extends Span {
     }
 }
 interface ITimeline {
@@ -3636,107 +3636,6 @@ declare module Fayde.Markup {
         setContext(app: Application, resources: ResourceDictionary[]): void;
     }
 }
-declare module Fayde.MVVM {
-    interface IValidationFunc {
-        (value: any, propertyName: string, entity: any): any[];
-    }
-    interface IAutoApplier<T> {
-        Notify(...properties: string[]): IAutoApplier<T>;
-        Notify(properties: string[]): IAutoApplier<T>;
-        Validate(propertyName: string, ...validators: IValidationFunc[]): IAutoApplier<T>;
-        Finish(): T;
-    }
-    function AutoModel<T>(typeOrModel: any): IAutoApplier<T>;
-}
-declare module Fayde.MVVM {
-    function NotifyProperties(type: any, propNames: string[]): void;
-    class ObservableObject implements INotifyPropertyChanged {
-        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
-        OnPropertyChanged(propertyName: string): void;
-    }
-}
-declare module Fayde.MVVM {
-    class ViewModelBase extends ObservableObject {
-    }
-}
-declare module Fayde.MVVM {
-    interface IDialogViewModelSettings<TAccept, TBuilder> {
-        AcceptAction?: (data: TAccept) => any;
-        CompleteAction?: (pars: IOverlayCompleteParameters) => any;
-        ViewModelBuilder?: (builder: TBuilder) => any;
-        CanOpen?: (builder: TBuilder) => boolean;
-    }
-    class DialogViewModel<TBuilder, TAccept> extends ViewModelBase {
-        IsOpen: boolean;
-        OverlayDataContext: any;
-        RequestOpenCommand: RelayCommand;
-        ClosedCommand: RelayCommand;
-        AcceptAction: (data: TAccept) => any;
-        CompleteAction: (pars: IOverlayCompleteParameters) => any;
-        ViewModelBuilder: (builder: TBuilder) => any;
-        CanOpen: (builder: TBuilder) => boolean;
-        constructor(settings?: IDialogViewModelSettings<TAccept, TBuilder>);
-        private Closed_Execute(parameter);
-        private RequestOpen_Execute(parameter);
-        private RequestOpen_CanExecute(parameter);
-    }
-}
-declare module Fayde.MVVM {
-    interface IEntity extends INotifyPropertyChanged, Data.INotifyDataErrorInfo {
-        OnPropertyChanged(propertyName: string): any;
-        AddError(propertyName: string, errorMessage: string): any;
-        RemoveError(propertyName: string, errorMessage: string): any;
-        ClearErrors(propertyName: string): any;
-    }
-    class Entity implements IEntity {
-        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
-        OnPropertyChanged(propertyName: string): void;
-        private _Errors;
-        ErrorsChanged: nullstone.Event<Data.DataErrorsChangedEventArgs>;
-        HasErrors: boolean;
-        AddError(propertyName: string, errorMessage: string): void;
-        RemoveError(propertyName: string, errorMessage: string): void;
-        ClearErrors(propertyName: string): void;
-        GetErrors(propertyName: string): nullstone.IEnumerable<string>;
-        static ApplyTo<TIn, TOut extends IEntity>(model: TIn): TOut;
-    }
-}
-declare module Fayde.MVVM {
-    interface IOverlayCompleteParameters {
-        Result: boolean;
-        Data: any;
-    }
-}
-declare module Fayde.Navigation {
-    class Route {
-        View: Uri;
-        HashParams: {
-            [key: string]: string;
-        };
-        DataContext: any;
-        constructor(view: Uri, hashParams: {
-            [key: string]: string;
-        }, dataContext: any);
-    }
-}
-declare module Fayde.MVVM {
-    interface IRedirector {
-        (newUri: string | Uri): any;
-    }
-    interface IViewModelProvider {
-        ResolveViewModel(route: Fayde.Navigation.Route, redirect?: IRedirector): any;
-    }
-    var IViewModelProvider_: nullstone.Interface<IViewModelProvider>;
-}
-declare module Fayde.MVVM {
-    class RelayCommand implements Input.ICommand {
-        constructor(execute?: (parameter: any) => void, canExecute?: (parameter: any) => boolean);
-        Execute(parameter: any): void;
-        CanExecute(parameter: any): boolean;
-        CanExecuteChanged: nullstone.Event<{}>;
-        ForceCanExecuteChanged(): void;
-    }
-}
 declare module Fayde.Media {
     class Brush extends DependencyObject implements minerva.IBrush {
         static TransformProperty: DependencyProperty;
@@ -4234,6 +4133,107 @@ declare module Fayde.Media {
         _BuildValue(): number[];
     }
 }
+declare module Fayde.MVVM {
+    interface IValidationFunc {
+        (value: any, propertyName: string, entity: any): any[];
+    }
+    interface IAutoApplier<T> {
+        Notify(...properties: string[]): IAutoApplier<T>;
+        Notify(properties: string[]): IAutoApplier<T>;
+        Validate(propertyName: string, ...validators: IValidationFunc[]): IAutoApplier<T>;
+        Finish(): T;
+    }
+    function AutoModel<T>(typeOrModel: any): IAutoApplier<T>;
+}
+declare module Fayde.MVVM {
+    function NotifyProperties(type: any, propNames: string[]): void;
+    class ObservableObject implements INotifyPropertyChanged {
+        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
+        OnPropertyChanged(propertyName: string): void;
+    }
+}
+declare module Fayde.MVVM {
+    class ViewModelBase extends ObservableObject {
+    }
+}
+declare module Fayde.MVVM {
+    interface IDialogViewModelSettings<TAccept, TBuilder> {
+        AcceptAction?: (data: TAccept) => any;
+        CompleteAction?: (pars: IOverlayCompleteParameters) => any;
+        ViewModelBuilder?: (builder: TBuilder) => any;
+        CanOpen?: (builder: TBuilder) => boolean;
+    }
+    class DialogViewModel<TBuilder, TAccept> extends ViewModelBase {
+        IsOpen: boolean;
+        OverlayDataContext: any;
+        RequestOpenCommand: RelayCommand;
+        ClosedCommand: RelayCommand;
+        AcceptAction: (data: TAccept) => any;
+        CompleteAction: (pars: IOverlayCompleteParameters) => any;
+        ViewModelBuilder: (builder: TBuilder) => any;
+        CanOpen: (builder: TBuilder) => boolean;
+        constructor(settings?: IDialogViewModelSettings<TAccept, TBuilder>);
+        private Closed_Execute(parameter);
+        private RequestOpen_Execute(parameter);
+        private RequestOpen_CanExecute(parameter);
+    }
+}
+declare module Fayde.MVVM {
+    interface IEntity extends INotifyPropertyChanged, Data.INotifyDataErrorInfo {
+        OnPropertyChanged(propertyName: string): any;
+        AddError(propertyName: string, errorMessage: string): any;
+        RemoveError(propertyName: string, errorMessage: string): any;
+        ClearErrors(propertyName: string): any;
+    }
+    class Entity implements IEntity {
+        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
+        OnPropertyChanged(propertyName: string): void;
+        private _Errors;
+        ErrorsChanged: nullstone.Event<Data.DataErrorsChangedEventArgs>;
+        HasErrors: boolean;
+        AddError(propertyName: string, errorMessage: string): void;
+        RemoveError(propertyName: string, errorMessage: string): void;
+        ClearErrors(propertyName: string): void;
+        GetErrors(propertyName: string): nullstone.IEnumerable<string>;
+        static ApplyTo<TIn, TOut extends IEntity>(model: TIn): TOut;
+    }
+}
+declare module Fayde.MVVM {
+    interface IOverlayCompleteParameters {
+        Result: boolean;
+        Data: any;
+    }
+}
+declare module Fayde.Navigation {
+    class Route {
+        View: Uri;
+        HashParams: {
+            [key: string]: string;
+        };
+        DataContext: any;
+        constructor(view: Uri, hashParams: {
+            [key: string]: string;
+        }, dataContext: any);
+    }
+}
+declare module Fayde.MVVM {
+    interface IRedirector {
+        (newUri: string | Uri): any;
+    }
+    interface IViewModelProvider {
+        ResolveViewModel(route: Fayde.Navigation.Route, redirect?: IRedirector): any;
+    }
+    var IViewModelProvider_: nullstone.Interface<IViewModelProvider>;
+}
+declare module Fayde.MVVM {
+    class RelayCommand implements Input.ICommand {
+        constructor(execute?: (parameter: any) => void, canExecute?: (parameter: any) => boolean);
+        Execute(parameter: any): void;
+        CanExecute(parameter: any): boolean;
+        CanExecuteChanged: nullstone.Event<{}>;
+        ForceCanExecuteChanged(): void;
+    }
+}
 declare module Fayde.Navigation {
     function Navigate(source: DependencyObject, targetName: string, navigateUri: Uri): void;
 }
@@ -4511,6 +4511,76 @@ declare class Thickness extends minerva.Thickness {
 declare module Fayde {
     function splitCommaList(str: string): string[];
 }
+declare class BError {
+    static Argument: number;
+    static InvalidOperation: number;
+    static XamlParse: number;
+    static Attach: number;
+    Message: string;
+    Number: number;
+    Data: any;
+    ThrowException(): void;
+}
+declare module Fayde {
+    function Bootstrap(onLoaded?: (app: Application) => any): void;
+}
+declare module Fayde {
+    function LoadConfigJson(onComplete: (config: any, err?: any) => void): void;
+}
+declare module Fayde {
+    module Render {
+        var Debug: boolean;
+        var DebugIndent: number;
+    }
+    module Layout {
+        var Debug: boolean;
+        var DebugIndent: number;
+    }
+    module Media {
+        module Animation {
+            var Log: boolean;
+            var LogApply: boolean;
+        }
+        module VSM {
+            var Debug: boolean;
+        }
+    }
+    module Data {
+        var Debug: boolean;
+        var IsCounterEnabled: boolean;
+        var DataContextCounter: number;
+    }
+    var IsInspectionOn: boolean;
+}
+declare module NumberEx {
+    function AreClose(val1: number, val2: number): boolean;
+    function IsLessThanClose(val1: number, val2: number): boolean;
+    function IsGreaterThanClose(val1: number, val2: number): boolean;
+}
+declare module StringEx {
+    function Format(format: string, ...items: any[]): string;
+}
+interface ITimelineEvent {
+    Type: string;
+    Name: string;
+    Time: number;
+}
+interface ITimelineGroup {
+    Type: string;
+    Data: string;
+    Start: number;
+    Length: number;
+}
+declare class TimelineProfile {
+    private static _Events;
+    static Groups: ITimelineGroup[];
+    static TimelineStart: number;
+    static IsNextLayoutPassProfiled: boolean;
+    static Parse(isStart: boolean, name: string): void;
+    static Navigate(isStart: boolean, name?: string): void;
+    static LayoutPass(isStart: boolean): void;
+    private static _FinishEvent(type, name?);
+}
 declare module Fayde.Shapes {
     class DoubleCollection extends XamlObjectCollection<XamlObject> {
     }
@@ -4628,110 +4698,6 @@ declare module Fayde.Shapes {
         constructor();
     }
 }
-declare class BError {
-    static Argument: number;
-    static InvalidOperation: number;
-    static XamlParse: number;
-    static Attach: number;
-    Message: string;
-    Number: number;
-    Data: any;
-    ThrowException(): void;
-}
-declare module Fayde {
-    function Bootstrap(onLoaded?: (app: Application) => any): void;
-}
-declare module Fayde {
-    function LoadConfigJson(onComplete: (config: any, err?: any) => void): void;
-}
-declare module Fayde {
-    module Render {
-        var Debug: boolean;
-        var DebugIndent: number;
-    }
-    module Layout {
-        var Debug: boolean;
-        var DebugIndent: number;
-    }
-    module Media {
-        module Animation {
-            var Log: boolean;
-            var LogApply: boolean;
-        }
-        module VSM {
-            var Debug: boolean;
-        }
-    }
-    module Data {
-        var Debug: boolean;
-        var IsCounterEnabled: boolean;
-        var DataContextCounter: number;
-    }
-    var IsInspectionOn: boolean;
-}
-declare module NumberEx {
-    function AreClose(val1: number, val2: number): boolean;
-    function IsLessThanClose(val1: number, val2: number): boolean;
-    function IsGreaterThanClose(val1: number, val2: number): boolean;
-}
-declare module StringEx {
-    function Format(format: string, ...items: any[]): string;
-}
-interface ITimelineEvent {
-    Type: string;
-    Name: string;
-    Time: number;
-}
-interface ITimelineGroup {
-    Type: string;
-    Data: string;
-    Start: number;
-    Length: number;
-}
-declare class TimelineProfile {
-    private static _Events;
-    static Groups: ITimelineGroup[];
-    static TimelineStart: number;
-    static IsNextLayoutPassProfiled: boolean;
-    static Parse(isStart: boolean, name: string): void;
-    static Navigate(isStart: boolean, name?: string): void;
-    static LayoutPass(isStart: boolean): void;
-    private static _FinishEvent(type, name?);
-}
-declare module Fayde.Validation {
-    function Emit(fe: FrameworkElement, binding: Data.Binding, oldError: ValidationError, error: ValidationError): void;
-}
-declare module Fayde.Validation {
-    import ReadOnlyObservableCollection = Collections.ReadOnlyObservableCollection;
-    var HasErrorProperty: DependencyProperty;
-    var ErrorsProperty: DependencyProperty;
-    function GetErrors(dobj: DependencyObject): ReadOnlyObservableCollection<ValidationError>;
-    function GetHasError(dobj: DependencyObject): boolean;
-    function AddError(element: FrameworkElement, error: ValidationError): void;
-    function RemoveError(element: FrameworkElement, error: ValidationError): void;
-}
-declare module Fayde.Validation {
-    class ValidationError {
-        ErrorContent: any;
-        Exception: Exception;
-        PropertyName: string;
-        constructor(content: any, exception: Exception, propertyName: string);
-        constructor(content: any, exception: Error, propertyName: string);
-    }
-}
-declare module Fayde.Validation {
-    enum ValidationErrorEventAction {
-        Added = 0,
-        Removed = 1,
-    }
-}
-declare module Fayde.Validation {
-    class ValidationErrorEventArgs extends RoutedEventArgs {
-        Action: ValidationErrorEventAction;
-        Error: ValidationError;
-        constructor(action: ValidationErrorEventAction, error: ValidationError);
-    }
-}
 declare module Fayde.Text.Buffer {
     function cut(text: string, start: number, len: number): string;
     function insert(text: string, index: number, str: string): string;
@@ -4785,41 +4751,39 @@ declare module Fayde.Text {
         private $syncText();
     }
 }
-declare module Fayde.Providers {
-    enum StyleIndex {
-        VisualTree = 0,
-        ApplicationResources = 1,
-        Theme = 2,
-        Count = 3,
-    }
-    enum StyleMask {
-        None = 0,
-        VisualTree = 1,
-        ApplicationResources = 2,
-        Theme = 4,
-        All = 7,
-    }
-    interface IImplicitStyleHolder {
-        _ImplicitStyles: Style[];
-        _StyleMask: number;
-    }
-    class ImplicitStyleBroker {
-        static Set(fe: FrameworkElement, mask: StyleMask, styles?: Style[]): void;
-        private static SetImpl(fe, mask, styles);
-        static Clear(fe: FrameworkElement, mask: StyleMask): void;
-        private static ApplyStyles(fe, mask, styles);
+declare module Fayde.Validation {
+    function Emit(fe: FrameworkElement, binding: Data.Binding, oldError: ValidationError, error: ValidationError): void;
+}
+declare module Fayde.Validation {
+    import ReadOnlyObservableCollection = Collections.ReadOnlyObservableCollection;
+    var HasErrorProperty: DependencyProperty;
+    var ErrorsProperty: DependencyProperty;
+    function GetErrors(dobj: DependencyObject): ReadOnlyObservableCollection<ValidationError>;
+    function GetHasError(dobj: DependencyObject): boolean;
+    function AddError(element: FrameworkElement, error: ValidationError): void;
+    function RemoveError(element: FrameworkElement, error: ValidationError): void;
+}
+declare module Fayde.Validation {
+    class ValidationError {
+        ErrorContent: any;
+        Exception: Exception;
+        PropertyName: string;
+        constructor(content: any, exception: Exception, propertyName: string);
+        constructor(content: any, exception: Error, propertyName: string);
     }
 }
-declare module Fayde.Providers {
-    interface IStyleHolder {
-        _LocalStyle: Style;
-    }
-    class LocalStyleBroker {
-        static Set(fe: FrameworkElement, newStyle: Style): void;
+declare module Fayde.Validation {
+    enum ValidationErrorEventAction {
+        Added = 0,
+        Removed = 1,
     }
 }
-declare module Fayde.Providers {
-    function SwapStyles(fe: FrameworkElement, oldWalker: IStyleWalker, newWalker: IStyleWalker, isImplicit: boolean): void;
+declare module Fayde.Validation {
+    class ValidationErrorEventArgs extends RoutedEventArgs {
+        Action: ValidationErrorEventAction;
+        Error: ValidationError;
+        constructor(action: ValidationErrorEventAction, error: ValidationError);
+    }
 }
 declare module Fayde.Controls.Internal {
     interface ICursorAdvancer {
@@ -5136,6 +5100,42 @@ declare module Fayde.Controls.Primitives {
         UpdateSelectorProperties(item: any, index: number, value: any): void;
         UpdateCollectionView(item: any): boolean;
     }
+}
+declare module Fayde.Providers {
+    enum StyleIndex {
+        VisualTree = 0,
+        ApplicationResources = 1,
+        Theme = 2,
+        Count = 3,
+    }
+    enum StyleMask {
+        None = 0,
+        VisualTree = 1,
+        ApplicationResources = 2,
+        Theme = 4,
+        All = 7,
+    }
+    interface IImplicitStyleHolder {
+        _ImplicitStyles: Style[];
+        _StyleMask: number;
+    }
+    class ImplicitStyleBroker {
+        static Set(fe: FrameworkElement, mask: StyleMask, styles?: Style[]): void;
+        private static SetImpl(fe, mask, styles);
+        static Clear(fe: FrameworkElement, mask: StyleMask): void;
+        private static ApplyStyles(fe, mask, styles);
+    }
+}
+declare module Fayde.Providers {
+    interface IStyleHolder {
+        _LocalStyle: Style;
+    }
+    class LocalStyleBroker {
+        static Set(fe: FrameworkElement, newStyle: Style): void;
+    }
+}
+declare module Fayde.Providers {
+    function SwapStyles(fe: FrameworkElement, oldWalker: IStyleWalker, newWalker: IStyleWalker, isImplicit: boolean): void;
 }
 declare module Fayde.Data {
     interface IOutValue {
@@ -5829,25 +5829,6 @@ declare module Fayde.Media.Effects {
         PreRender(ctx: minerva.core.render.RenderContext): void;
     }
 }
-declare module Fayde.Media.LinearGradient {
-    interface IInterpolator {
-        x0: number;
-        y0: number;
-        x1: number;
-        y1: number;
-        step(): boolean;
-        interpolate(offset: number): number;
-    }
-    function createRepeatInterpolator(start: Point, end: Point, bounds: minerva.Rect): IInterpolator;
-    function createReflectInterpolator(start: Point, end: Point, bounds: minerva.Rect): IInterpolator;
-}
-declare module Fayde.Media.LinearGradient {
-    interface ICoordinates {
-        x: number;
-        y: number;
-    }
-    function calcMetrics(dir: ICoordinates, first: ICoordinates, last: ICoordinates, bounds: minerva.Rect): void;
-}
 declare module Fayde.Media.Imaging {
     class ImageSource extends DependencyObject implements minerva.controls.image.IImageSource {
         static PixelWidthProperty: DependencyProperty;
@@ -5916,6 +5897,25 @@ declare module Fayde.Media.Imaging {
 }
 declare module Fayde.Media.Imaging {
     function encodeImage(buffer: ArrayBuffer): Uri;
+}
+declare module Fayde.Media.LinearGradient {
+    interface IInterpolator {
+        x0: number;
+        y0: number;
+        x1: number;
+        y1: number;
+        step(): boolean;
+        interpolate(offset: number): number;
+    }
+    function createRepeatInterpolator(start: Point, end: Point, bounds: minerva.Rect): IInterpolator;
+    function createReflectInterpolator(start: Point, end: Point, bounds: minerva.Rect): IInterpolator;
+}
+declare module Fayde.Media.LinearGradient {
+    interface ICoordinates {
+        x: number;
+        y: number;
+    }
+    function calcMetrics(dir: ICoordinates, first: ICoordinates, last: ICoordinates, bounds: minerva.Rect): void;
 }
 declare module Fayde.Media.RadialGradient {
     interface IExtender {
