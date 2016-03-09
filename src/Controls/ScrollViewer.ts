@@ -80,6 +80,14 @@ module Fayde.Controls {
                 value.CanVerticallyScroll = this.VerticalScrollBarVisibility !== ScrollBarVisibility.Disabled;
             }
         }
+        
+        ResetScrollInfo() {
+            var scrollInfo = this.ScrollInfo;
+            if (scrollInfo) {
+                scrollInfo.SetVerticalOffset(0);
+                scrollInfo.SetHorizontalOffset(0);
+            }
+        }
 
         InvalidateScrollInfo() {
             var scrollInfo = this.ScrollInfo;
@@ -96,11 +104,11 @@ module Fayde.Controls {
             var lu = this.XamlNode.LayoutUpdater;
 
             var w = Math.max(0, this.ExtentWidth - this.ViewportWidth);
-            if (w !== this.ScrollableWidth) {
+            if (w !== this.ScrollableWidth) {            
                 this.SetCurrentValue(ScrollViewer.ScrollableWidthProperty, w);
                 lu.invalidateMeasure();
             }
-
+            
             var h = Math.max(0, this.ExtentHeight - this.ViewportHeight);
             if (h !== this.ScrollableHeight) {
                 this.SetCurrentValue(ScrollViewer.ScrollableHeightProperty, h);

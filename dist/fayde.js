@@ -287,6 +287,384 @@ var Fayde;
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
+    var Collections;
+    (function (Collections) {
+        (function (CollectionChangedAction) {
+            CollectionChangedAction[CollectionChangedAction["Add"] = 1] = "Add";
+            CollectionChangedAction[CollectionChangedAction["Remove"] = 2] = "Remove";
+            CollectionChangedAction[CollectionChangedAction["Replace"] = 3] = "Replace";
+            CollectionChangedAction[CollectionChangedAction["Reset"] = 4] = "Reset";
+        })(Collections.CollectionChangedAction || (Collections.CollectionChangedAction = {}));
+        var CollectionChangedAction = Collections.CollectionChangedAction;
+        Fayde.CoreLibrary.addEnum(CollectionChangedAction, "NotifyCollectionChangedAction");
+        var CollectionChangedEventArgs = (function () {
+            function CollectionChangedEventArgs() {
+            }
+            CollectionChangedEventArgs.Reset = function (allValues) {
+                var args = new CollectionChangedEventArgs();
+                Object.defineProperty(args, "Action", { value: CollectionChangedAction.Reset, writable: false });
+                Object.defineProperty(args, "OldStartingIndex", { value: 0, writable: false });
+                Object.defineProperty(args, "NewStartingIndex", { value: -1, writable: false });
+                Object.defineProperty(args, "OldItems", { value: allValues, writable: false });
+                Object.defineProperty(args, "NewItems", { value: null, writable: false });
+                return args;
+            };
+            CollectionChangedEventArgs.Replace = function (newValue, oldValue, index) {
+                var args = new CollectionChangedEventArgs();
+                Object.defineProperty(args, "Action", { value: CollectionChangedAction.Replace, writable: false });
+                Object.defineProperty(args, "OldStartingIndex", { value: -1, writable: false });
+                Object.defineProperty(args, "NewStartingIndex", { value: index, writable: false });
+                Object.defineProperty(args, "OldItems", { value: [oldValue], writable: false });
+                Object.defineProperty(args, "NewItems", { value: [newValue], writable: false });
+                return args;
+            };
+            CollectionChangedEventArgs.Add = function (newValue, index) {
+                var args = new CollectionChangedEventArgs();
+                Object.defineProperty(args, "Action", { value: CollectionChangedAction.Add, writable: false });
+                Object.defineProperty(args, "OldStartingIndex", { value: -1, writable: false });
+                Object.defineProperty(args, "NewStartingIndex", { value: index, writable: false });
+                Object.defineProperty(args, "OldItems", { value: null, writable: false });
+                Object.defineProperty(args, "NewItems", { value: [newValue], writable: false });
+                return args;
+            };
+            CollectionChangedEventArgs.AddRange = function (newValues, index) {
+                var args = new CollectionChangedEventArgs();
+                Object.defineProperty(args, "Action", { value: CollectionChangedAction.Add, writable: false });
+                Object.defineProperty(args, "OldStartingIndex", { value: -1, writable: false });
+                Object.defineProperty(args, "NewStartingIndex", { value: index, writable: false });
+                Object.defineProperty(args, "OldItems", { value: null, writable: false });
+                Object.defineProperty(args, "NewItems", { value: newValues, writable: false });
+                return args;
+            };
+            CollectionChangedEventArgs.Remove = function (oldValue, index) {
+                var args = new CollectionChangedEventArgs();
+                Object.defineProperty(args, "Action", { value: CollectionChangedAction.Remove, writable: false });
+                Object.defineProperty(args, "OldStartingIndex", { value: index, writable: false });
+                Object.defineProperty(args, "NewStartingIndex", { value: -1, writable: false });
+                Object.defineProperty(args, "OldItems", { value: [oldValue], writable: false });
+                Object.defineProperty(args, "NewItems", { value: null, writable: false });
+                return args;
+            };
+            return CollectionChangedEventArgs;
+        })();
+        Collections.CollectionChangedEventArgs = CollectionChangedEventArgs;
+    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Collections;
+    (function (Collections) {
+        Collections.INotifyCollectionChanged_ = new nullstone.Interface("INotifyCollectionChanged");
+        Collections.INotifyCollectionChanged_.is = function (o) {
+            return o && o.CollectionChanged instanceof nullstone.Event;
+        };
+    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var PropertyChangedEventArgs = (function () {
+        function PropertyChangedEventArgs(propertyName) {
+            Object.defineProperty(this, "PropertyName", { value: propertyName, writable: false });
+        }
+        return PropertyChangedEventArgs;
+    })();
+    Fayde.PropertyChangedEventArgs = PropertyChangedEventArgs;
+    Fayde.CoreLibrary.add(PropertyChangedEventArgs);
+    Fayde.INotifyPropertyChanged_ = new nullstone.Interface("INotifyPropertyChanged");
+    Fayde.INotifyPropertyChanged_.is = function (o) {
+        return o && o.PropertyChanged instanceof nullstone.Event;
+    };
+})(Fayde || (Fayde = {}));
+/// <reference path="INotifyCollectionChanged.ts" />
+/// <reference path="../Core/INotifyPropertyChanged.ts" />
+var Fayde;
+(function (Fayde) {
+    var Collections;
+    (function (Collections) {
+        var ObservableCollection = (function () {
+            function ObservableCollection() {
+                this._ht = [];
+                this.CollectionChanged = new nullstone.Event();
+                this.PropertyChanged = new nullstone.Event();
+            }
+            ObservableCollection.prototype.getEnumerator = function () {
+                return nullstone.IEnumerator_.fromArray(this._ht);
+            };
+            Object.defineProperty(ObservableCollection.prototype, "Count", {
+                get: function () {
+                    return this._ht.length;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            ObservableCollection.prototype.ToArray = function () {
+                return this._ht.slice(0);
+            };
+            ObservableCollection.prototype.GetValueAt = function (index) {
+                var ht = this._ht;
+                if (index < 0 || index >= ht.length)
+                    throw new IndexOutOfRangeException(index);
+                return ht[index];
+            };
+            ObservableCollection.prototype.SetValueAt = function (index, value) {
+                var ht = this._ht;
+                if (index < 0 || index >= ht.length)
+                    throw new IndexOutOfRangeException(index);
+                var oldValue = ht[index];
+                ht[index] = value;
+                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Replace(value, oldValue, index));
+            };
+            ObservableCollection.prototype.Add = function (value) {
+                var index = this._ht.push(value) - 1;
+                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Add(value, index));
+                this._RaisePropertyChanged("Count");
+            };
+            ObservableCollection.prototype.AddRange = function (values) {
+                var index = this._ht.length;
+                var len = values.length;
+                for (var i = 0; i < len; i++) {
+                    this._ht.push(values[i]);
+                }
+                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.AddRange(values, index));
+                this._RaisePropertyChanged("Count");
+            };
+            ObservableCollection.prototype.Insert = function (index, value) {
+                var ht = this._ht;
+                if (index < 0 || index > ht.length)
+                    throw new IndexOutOfRangeException(index);
+                if (index >= ht.length)
+                    ht.push(value);
+                else
+                    ht.splice(index, 0, value);
+                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Add(value, index));
+                this._RaisePropertyChanged("Count");
+            };
+            ObservableCollection.prototype.IndexOf = function (value) {
+                return this._ht.indexOf(value);
+            };
+            ObservableCollection.prototype.Contains = function (value) {
+                return this._ht.indexOf(value) > -1;
+            };
+            ObservableCollection.prototype.Remove = function (value) {
+                var index = this._ht.indexOf(value);
+                if (index < 0)
+                    return false;
+                this._ht.splice(index, 1);
+                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Remove(value, index));
+                this._RaisePropertyChanged("Count");
+                return true;
+            };
+            ObservableCollection.prototype.RemoveAt = function (index) {
+                if (index < 0 || index >= this._ht.length)
+                    throw new IndexOutOfRangeException(index);
+                var item = this._ht.splice(index, 1)[0];
+                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Remove(item, index));
+                this._RaisePropertyChanged("Count");
+            };
+            ObservableCollection.prototype.Clear = function () {
+                var old = this._ht;
+                this._ht = [];
+                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Reset(old));
+                this._RaisePropertyChanged("Count");
+            };
+            ObservableCollection.prototype._RaisePropertyChanged = function (propertyName) {
+                this.PropertyChanged.raise(this, new Fayde.PropertyChangedEventArgs(propertyName));
+            };
+            return ObservableCollection;
+        })();
+        Collections.ObservableCollection = ObservableCollection;
+        Fayde.CoreLibrary.add(ObservableCollection);
+        nullstone.ICollection_.mark(ObservableCollection);
+    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
+})(Fayde || (Fayde = {}));
+/// <reference path="ObservableCollection.ts" />
+var Fayde;
+(function (Fayde) {
+    var Collections;
+    (function (Collections) {
+        var DeepObservableCollection = (function (_super) {
+            __extends(DeepObservableCollection, _super);
+            function DeepObservableCollection() {
+                _super.call(this);
+                this.ItemPropertyChanged = new nullstone.Event();
+                this.CollectionChanged.on(this._OnCollectionChanged, this);
+            }
+            DeepObservableCollection.prototype._OnCollectionChanged = function (sender, e) {
+                if (e.NewItems) {
+                    for (var i = 0; i < e.NewItems.length; i++) {
+                        var notify = Fayde.INotifyPropertyChanged_.as(e.NewItems[i]);
+                        if (notify)
+                            notify.PropertyChanged.on(this._OnItemPropertyChanged, this);
+                    }
+                }
+                if (e.OldItems) {
+                    for (var i = 0; i < e.OldItems.length; i++) {
+                        var notify = Fayde.INotifyPropertyChanged_.as(e.OldItems[i]);
+                        if (notify)
+                            notify.PropertyChanged.off(this._OnItemPropertyChanged, this);
+                    }
+                }
+            };
+            DeepObservableCollection.prototype._OnItemPropertyChanged = function (sender, e) {
+                this.ItemPropertyChanged.raise(this, new Collections.ItemPropertyChangedEventArgs(sender, e.PropertyName));
+            };
+            return DeepObservableCollection;
+        })(Collections.ObservableCollection);
+        Collections.DeepObservableCollection = DeepObservableCollection;
+    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Collections;
+    (function (Collections) {
+        var FilteredCollection = (function (_super) {
+            __extends(FilteredCollection, _super);
+            function FilteredCollection(filter, source) {
+                _super.call(this);
+                this.Filter = filter;
+                this._SetSource(source || new Collections.DeepObservableCollection());
+            }
+            Object.defineProperty(FilteredCollection.prototype, "Source", {
+                get: function () { return this._Source; },
+                set: function (value) { this._SetSource(value); },
+                enumerable: true,
+                configurable: true
+            });
+            Object.defineProperty(FilteredCollection.prototype, "Filter", {
+                get: function () {
+                    return this._Filter;
+                },
+                set: function (value) {
+                    this._Filter = value;
+                    this.Update();
+                },
+                enumerable: true,
+                configurable: true
+            });
+            FilteredCollection.prototype._SetSource = function (source) {
+                if (this._Source) {
+                    this._Source.CollectionChanged.off(this._OnSourceCollectionChanged, this);
+                    this._Source.ItemPropertyChanged.off(this._OnSourceItemPropertyChanged, this);
+                }
+                this._Source = source;
+                if (source) {
+                    source.CollectionChanged.on(this._OnSourceCollectionChanged, this);
+                    source.ItemPropertyChanged.on(this._OnSourceItemPropertyChanged, this);
+                }
+                this.Update();
+            };
+            FilteredCollection.prototype._OnSourceCollectionChanged = function (sender, e) {
+                this.Update();
+            };
+            FilteredCollection.prototype._OnSourceItemPropertyChanged = function (sender, e) {
+                this.Update();
+                var index = this.Source.IndexOf(e.Item);
+                if (this.Filter && this.Filter(e.Item, index))
+                    this.ItemPropertyChanged.raise(this, e);
+            };
+            FilteredCollection.prototype.Update = function () {
+                if (!this._Source)
+                    return;
+                var filter = this.Filter || (function (item) { return true; });
+                for (var i = 0, j = 0, enumerator = this._Source.getEnumerator(); enumerator.moveNext(); i++) {
+                    var isIncluded = filter(enumerator.current, i);
+                    var isCurrent = j < this.Count && this.GetValueAt(j) === enumerator.current;
+                    if (isIncluded && !isCurrent)
+                        this.Insert(j, enumerator.current);
+                    else if (!isIncluded && isCurrent)
+                        this.RemoveAt(j);
+                    if (isIncluded)
+                        j++;
+                }
+            };
+            return FilteredCollection;
+        })(Collections.DeepObservableCollection);
+        Collections.FilteredCollection = FilteredCollection;
+    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
+})(Fayde || (Fayde = {}));
+/// <reference path="../Core/INotifyPropertyChanged.ts" />
+var Fayde;
+(function (Fayde) {
+    var Collections;
+    (function (Collections) {
+        var ItemPropertyChangedEventArgs = (function (_super) {
+            __extends(ItemPropertyChangedEventArgs, _super);
+            function ItemPropertyChangedEventArgs(item, propertyName) {
+                _super.call(this, propertyName);
+                Object.defineProperty(this, "Item", { value: item, writable: false });
+            }
+            return ItemPropertyChangedEventArgs;
+        })(Fayde.PropertyChangedEventArgs);
+        Collections.ItemPropertyChangedEventArgs = ItemPropertyChangedEventArgs;
+    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Collections;
+    (function (Collections) {
+        var ReadOnlyObservableCollection = (function () {
+            function ReadOnlyObservableCollection(source) {
+                this.CollectionChanged = new nullstone.Event();
+                this.PropertyChanged = new nullstone.Event();
+                this._Source = source;
+                this._Source.CollectionChanged.on(this._OnCollectionChanged, this);
+                this._Source.PropertyChanged.on(this._OnPropertyChanged, this);
+            }
+            Object.defineProperty(ReadOnlyObservableCollection.prototype, "Count", {
+                get: function () {
+                    return this._Source.Count;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            ReadOnlyObservableCollection.prototype.GetValueAt = function (index) {
+                return this._Source.GetValueAt(index);
+            };
+            ReadOnlyObservableCollection.prototype.getEnumerator = function () {
+                return this._Source.getEnumerator();
+            };
+            ReadOnlyObservableCollection.prototype.ToArray = function () {
+                return this._Source.ToArray();
+            };
+            ReadOnlyObservableCollection.prototype.IndexOf = function (value) {
+                return this._Source.IndexOf(value);
+            };
+            ReadOnlyObservableCollection.prototype.Contains = function (value) {
+                return this._Source.Contains(value);
+            };
+            ReadOnlyObservableCollection.prototype._OnCollectionChanged = function (sender, args) {
+                this.CollectionChanged.raise(this, args);
+            };
+            ReadOnlyObservableCollection.prototype._OnPropertyChanged = function (sender, args) {
+                this.PropertyChanged.raise(this, args);
+            };
+            ReadOnlyObservableCollection.prototype.SetValueAt = function (index, value) {
+                throw new Error("Collection is read only.");
+            };
+            ReadOnlyObservableCollection.prototype.Insert = function (index, value) {
+                throw new Error("Collection is read only.");
+            };
+            ReadOnlyObservableCollection.prototype.Add = function (value) {
+                throw new Error("Collection is read only.");
+            };
+            ReadOnlyObservableCollection.prototype.Remove = function (value) {
+                throw new Error("Collection is read only.");
+            };
+            ReadOnlyObservableCollection.prototype.RemoveAt = function (index) {
+                throw new Error("Collection is read only.");
+            };
+            ReadOnlyObservableCollection.prototype.Clear = function () {
+                throw new Error("Collection is read only.");
+            };
+            return ReadOnlyObservableCollection;
+        })();
+        Collections.ReadOnlyObservableCollection = ReadOnlyObservableCollection;
+        Fayde.CoreLibrary.add(Collections.ObservableCollection);
+        nullstone.addTypeInterfaces(ReadOnlyObservableCollection, nullstone.ICollection_, Collections.INotifyCollectionChanged_, Fayde.INotifyPropertyChanged_);
+    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
     var XamlNode = (function () {
         function XamlNode(xobj) {
             this.ParentNode = null;
@@ -3950,15 +4328,22 @@ var Fayde;
                 Selector.prototype.OnItemsChanged = function (e) {
                     _super.prototype.OnItemsChanged.call(this, e);
                     var item;
+                    var tsv = this.$TemplateScrollViewer;
+                    if (tsv)
+                        tsv.ResetScrollInfo();
                     switch (e.Action) {
                         case Fayde.Collections.CollectionChangedAction.Add:
                             var lbi;
                             if (e.NewItems[0] instanceof Controls.ListBoxItem)
                                 lbi = e.NewItems[0];
                             if (lbi != null && lbi.IsSelected && !this.SelectedItems.Contains(lbi)) {
+                                if (tsv)
+                                    tsv.ScrollToVerticalOffset(0);
                                 this._Selection.Select(lbi);
                             }
                             else if (this.SelectedItem != null) {
+                                if (tsv)
+                                    tsv.ScrollToVerticalOffset(0);
                                 this._Selection.Select(this.SelectedItem);
                             }
                             break;
@@ -5264,6 +5649,13 @@ var Fayde;
                 enumerable: true,
                 configurable: true
             });
+            ScrollViewer.prototype.ResetScrollInfo = function () {
+                var scrollInfo = this.ScrollInfo;
+                if (scrollInfo) {
+                    scrollInfo.SetVerticalOffset(0);
+                    scrollInfo.SetHorizontalOffset(0);
+                }
+            };
             ScrollViewer.prototype.InvalidateScrollInfo = function () {
                 var scrollInfo = this.ScrollInfo;
                 if (scrollInfo) {
@@ -9837,384 +10229,6 @@ var Fayde;
         Controls.WebBrowser = WebBrowser;
         Fayde.CoreLibrary.add(WebBrowser);
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Collections;
-    (function (Collections) {
-        (function (CollectionChangedAction) {
-            CollectionChangedAction[CollectionChangedAction["Add"] = 1] = "Add";
-            CollectionChangedAction[CollectionChangedAction["Remove"] = 2] = "Remove";
-            CollectionChangedAction[CollectionChangedAction["Replace"] = 3] = "Replace";
-            CollectionChangedAction[CollectionChangedAction["Reset"] = 4] = "Reset";
-        })(Collections.CollectionChangedAction || (Collections.CollectionChangedAction = {}));
-        var CollectionChangedAction = Collections.CollectionChangedAction;
-        Fayde.CoreLibrary.addEnum(CollectionChangedAction, "NotifyCollectionChangedAction");
-        var CollectionChangedEventArgs = (function () {
-            function CollectionChangedEventArgs() {
-            }
-            CollectionChangedEventArgs.Reset = function (allValues) {
-                var args = new CollectionChangedEventArgs();
-                Object.defineProperty(args, "Action", { value: CollectionChangedAction.Reset, writable: false });
-                Object.defineProperty(args, "OldStartingIndex", { value: 0, writable: false });
-                Object.defineProperty(args, "NewStartingIndex", { value: -1, writable: false });
-                Object.defineProperty(args, "OldItems", { value: allValues, writable: false });
-                Object.defineProperty(args, "NewItems", { value: null, writable: false });
-                return args;
-            };
-            CollectionChangedEventArgs.Replace = function (newValue, oldValue, index) {
-                var args = new CollectionChangedEventArgs();
-                Object.defineProperty(args, "Action", { value: CollectionChangedAction.Replace, writable: false });
-                Object.defineProperty(args, "OldStartingIndex", { value: -1, writable: false });
-                Object.defineProperty(args, "NewStartingIndex", { value: index, writable: false });
-                Object.defineProperty(args, "OldItems", { value: [oldValue], writable: false });
-                Object.defineProperty(args, "NewItems", { value: [newValue], writable: false });
-                return args;
-            };
-            CollectionChangedEventArgs.Add = function (newValue, index) {
-                var args = new CollectionChangedEventArgs();
-                Object.defineProperty(args, "Action", { value: CollectionChangedAction.Add, writable: false });
-                Object.defineProperty(args, "OldStartingIndex", { value: -1, writable: false });
-                Object.defineProperty(args, "NewStartingIndex", { value: index, writable: false });
-                Object.defineProperty(args, "OldItems", { value: null, writable: false });
-                Object.defineProperty(args, "NewItems", { value: [newValue], writable: false });
-                return args;
-            };
-            CollectionChangedEventArgs.AddRange = function (newValues, index) {
-                var args = new CollectionChangedEventArgs();
-                Object.defineProperty(args, "Action", { value: CollectionChangedAction.Add, writable: false });
-                Object.defineProperty(args, "OldStartingIndex", { value: -1, writable: false });
-                Object.defineProperty(args, "NewStartingIndex", { value: index, writable: false });
-                Object.defineProperty(args, "OldItems", { value: null, writable: false });
-                Object.defineProperty(args, "NewItems", { value: newValues, writable: false });
-                return args;
-            };
-            CollectionChangedEventArgs.Remove = function (oldValue, index) {
-                var args = new CollectionChangedEventArgs();
-                Object.defineProperty(args, "Action", { value: CollectionChangedAction.Remove, writable: false });
-                Object.defineProperty(args, "OldStartingIndex", { value: index, writable: false });
-                Object.defineProperty(args, "NewStartingIndex", { value: -1, writable: false });
-                Object.defineProperty(args, "OldItems", { value: [oldValue], writable: false });
-                Object.defineProperty(args, "NewItems", { value: null, writable: false });
-                return args;
-            };
-            return CollectionChangedEventArgs;
-        })();
-        Collections.CollectionChangedEventArgs = CollectionChangedEventArgs;
-    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Collections;
-    (function (Collections) {
-        Collections.INotifyCollectionChanged_ = new nullstone.Interface("INotifyCollectionChanged");
-        Collections.INotifyCollectionChanged_.is = function (o) {
-            return o && o.CollectionChanged instanceof nullstone.Event;
-        };
-    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var PropertyChangedEventArgs = (function () {
-        function PropertyChangedEventArgs(propertyName) {
-            Object.defineProperty(this, "PropertyName", { value: propertyName, writable: false });
-        }
-        return PropertyChangedEventArgs;
-    })();
-    Fayde.PropertyChangedEventArgs = PropertyChangedEventArgs;
-    Fayde.CoreLibrary.add(PropertyChangedEventArgs);
-    Fayde.INotifyPropertyChanged_ = new nullstone.Interface("INotifyPropertyChanged");
-    Fayde.INotifyPropertyChanged_.is = function (o) {
-        return o && o.PropertyChanged instanceof nullstone.Event;
-    };
-})(Fayde || (Fayde = {}));
-/// <reference path="INotifyCollectionChanged.ts" />
-/// <reference path="../Core/INotifyPropertyChanged.ts" />
-var Fayde;
-(function (Fayde) {
-    var Collections;
-    (function (Collections) {
-        var ObservableCollection = (function () {
-            function ObservableCollection() {
-                this._ht = [];
-                this.CollectionChanged = new nullstone.Event();
-                this.PropertyChanged = new nullstone.Event();
-            }
-            ObservableCollection.prototype.getEnumerator = function () {
-                return nullstone.IEnumerator_.fromArray(this._ht);
-            };
-            Object.defineProperty(ObservableCollection.prototype, "Count", {
-                get: function () {
-                    return this._ht.length;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            ObservableCollection.prototype.ToArray = function () {
-                return this._ht.slice(0);
-            };
-            ObservableCollection.prototype.GetValueAt = function (index) {
-                var ht = this._ht;
-                if (index < 0 || index >= ht.length)
-                    throw new IndexOutOfRangeException(index);
-                return ht[index];
-            };
-            ObservableCollection.prototype.SetValueAt = function (index, value) {
-                var ht = this._ht;
-                if (index < 0 || index >= ht.length)
-                    throw new IndexOutOfRangeException(index);
-                var oldValue = ht[index];
-                ht[index] = value;
-                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Replace(value, oldValue, index));
-            };
-            ObservableCollection.prototype.Add = function (value) {
-                var index = this._ht.push(value) - 1;
-                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Add(value, index));
-                this._RaisePropertyChanged("Count");
-            };
-            ObservableCollection.prototype.AddRange = function (values) {
-                var index = this._ht.length;
-                var len = values.length;
-                for (var i = 0; i < len; i++) {
-                    this._ht.push(values[i]);
-                }
-                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.AddRange(values, index));
-                this._RaisePropertyChanged("Count");
-            };
-            ObservableCollection.prototype.Insert = function (index, value) {
-                var ht = this._ht;
-                if (index < 0 || index > ht.length)
-                    throw new IndexOutOfRangeException(index);
-                if (index >= ht.length)
-                    ht.push(value);
-                else
-                    ht.splice(index, 0, value);
-                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Add(value, index));
-                this._RaisePropertyChanged("Count");
-            };
-            ObservableCollection.prototype.IndexOf = function (value) {
-                return this._ht.indexOf(value);
-            };
-            ObservableCollection.prototype.Contains = function (value) {
-                return this._ht.indexOf(value) > -1;
-            };
-            ObservableCollection.prototype.Remove = function (value) {
-                var index = this._ht.indexOf(value);
-                if (index < 0)
-                    return false;
-                this._ht.splice(index, 1);
-                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Remove(value, index));
-                this._RaisePropertyChanged("Count");
-                return true;
-            };
-            ObservableCollection.prototype.RemoveAt = function (index) {
-                if (index < 0 || index >= this._ht.length)
-                    throw new IndexOutOfRangeException(index);
-                var item = this._ht.splice(index, 1)[0];
-                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Remove(item, index));
-                this._RaisePropertyChanged("Count");
-            };
-            ObservableCollection.prototype.Clear = function () {
-                var old = this._ht;
-                this._ht = [];
-                this.CollectionChanged.raise(this, Collections.CollectionChangedEventArgs.Reset(old));
-                this._RaisePropertyChanged("Count");
-            };
-            ObservableCollection.prototype._RaisePropertyChanged = function (propertyName) {
-                this.PropertyChanged.raise(this, new Fayde.PropertyChangedEventArgs(propertyName));
-            };
-            return ObservableCollection;
-        })();
-        Collections.ObservableCollection = ObservableCollection;
-        Fayde.CoreLibrary.add(ObservableCollection);
-        nullstone.ICollection_.mark(ObservableCollection);
-    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="ObservableCollection.ts" />
-var Fayde;
-(function (Fayde) {
-    var Collections;
-    (function (Collections) {
-        var DeepObservableCollection = (function (_super) {
-            __extends(DeepObservableCollection, _super);
-            function DeepObservableCollection() {
-                _super.call(this);
-                this.ItemPropertyChanged = new nullstone.Event();
-                this.CollectionChanged.on(this._OnCollectionChanged, this);
-            }
-            DeepObservableCollection.prototype._OnCollectionChanged = function (sender, e) {
-                if (e.NewItems) {
-                    for (var i = 0; i < e.NewItems.length; i++) {
-                        var notify = Fayde.INotifyPropertyChanged_.as(e.NewItems[i]);
-                        if (notify)
-                            notify.PropertyChanged.on(this._OnItemPropertyChanged, this);
-                    }
-                }
-                if (e.OldItems) {
-                    for (var i = 0; i < e.OldItems.length; i++) {
-                        var notify = Fayde.INotifyPropertyChanged_.as(e.OldItems[i]);
-                        if (notify)
-                            notify.PropertyChanged.off(this._OnItemPropertyChanged, this);
-                    }
-                }
-            };
-            DeepObservableCollection.prototype._OnItemPropertyChanged = function (sender, e) {
-                this.ItemPropertyChanged.raise(this, new Collections.ItemPropertyChangedEventArgs(sender, e.PropertyName));
-            };
-            return DeepObservableCollection;
-        })(Collections.ObservableCollection);
-        Collections.DeepObservableCollection = DeepObservableCollection;
-    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Collections;
-    (function (Collections) {
-        var FilteredCollection = (function (_super) {
-            __extends(FilteredCollection, _super);
-            function FilteredCollection(filter, source) {
-                _super.call(this);
-                this.Filter = filter;
-                this._SetSource(source || new Collections.DeepObservableCollection());
-            }
-            Object.defineProperty(FilteredCollection.prototype, "Source", {
-                get: function () { return this._Source; },
-                set: function (value) { this._SetSource(value); },
-                enumerable: true,
-                configurable: true
-            });
-            Object.defineProperty(FilteredCollection.prototype, "Filter", {
-                get: function () {
-                    return this._Filter;
-                },
-                set: function (value) {
-                    this._Filter = value;
-                    this.Update();
-                },
-                enumerable: true,
-                configurable: true
-            });
-            FilteredCollection.prototype._SetSource = function (source) {
-                if (this._Source) {
-                    this._Source.CollectionChanged.off(this._OnSourceCollectionChanged, this);
-                    this._Source.ItemPropertyChanged.off(this._OnSourceItemPropertyChanged, this);
-                }
-                this._Source = source;
-                if (source) {
-                    source.CollectionChanged.on(this._OnSourceCollectionChanged, this);
-                    source.ItemPropertyChanged.on(this._OnSourceItemPropertyChanged, this);
-                }
-                this.Update();
-            };
-            FilteredCollection.prototype._OnSourceCollectionChanged = function (sender, e) {
-                this.Update();
-            };
-            FilteredCollection.prototype._OnSourceItemPropertyChanged = function (sender, e) {
-                this.Update();
-                var index = this.Source.IndexOf(e.Item);
-                if (this.Filter && this.Filter(e.Item, index))
-                    this.ItemPropertyChanged.raise(this, e);
-            };
-            FilteredCollection.prototype.Update = function () {
-                if (!this._Source)
-                    return;
-                var filter = this.Filter || (function (item) { return true; });
-                for (var i = 0, j = 0, enumerator = this._Source.getEnumerator(); enumerator.moveNext(); i++) {
-                    var isIncluded = filter(enumerator.current, i);
-                    var isCurrent = j < this.Count && this.GetValueAt(j) === enumerator.current;
-                    if (isIncluded && !isCurrent)
-                        this.Insert(j, enumerator.current);
-                    else if (!isIncluded && isCurrent)
-                        this.RemoveAt(j);
-                    if (isIncluded)
-                        j++;
-                }
-            };
-            return FilteredCollection;
-        })(Collections.DeepObservableCollection);
-        Collections.FilteredCollection = FilteredCollection;
-    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
-})(Fayde || (Fayde = {}));
-/// <reference path="../Core/INotifyPropertyChanged.ts" />
-var Fayde;
-(function (Fayde) {
-    var Collections;
-    (function (Collections) {
-        var ItemPropertyChangedEventArgs = (function (_super) {
-            __extends(ItemPropertyChangedEventArgs, _super);
-            function ItemPropertyChangedEventArgs(item, propertyName) {
-                _super.call(this, propertyName);
-                Object.defineProperty(this, "Item", { value: item, writable: false });
-            }
-            return ItemPropertyChangedEventArgs;
-        })(Fayde.PropertyChangedEventArgs);
-        Collections.ItemPropertyChangedEventArgs = ItemPropertyChangedEventArgs;
-    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Collections;
-    (function (Collections) {
-        var ReadOnlyObservableCollection = (function () {
-            function ReadOnlyObservableCollection(source) {
-                this.CollectionChanged = new nullstone.Event();
-                this.PropertyChanged = new nullstone.Event();
-                this._Source = source;
-                this._Source.CollectionChanged.on(this._OnCollectionChanged, this);
-                this._Source.PropertyChanged.on(this._OnPropertyChanged, this);
-            }
-            Object.defineProperty(ReadOnlyObservableCollection.prototype, "Count", {
-                get: function () {
-                    return this._Source.Count;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            ReadOnlyObservableCollection.prototype.GetValueAt = function (index) {
-                return this._Source.GetValueAt(index);
-            };
-            ReadOnlyObservableCollection.prototype.getEnumerator = function () {
-                return this._Source.getEnumerator();
-            };
-            ReadOnlyObservableCollection.prototype.ToArray = function () {
-                return this._Source.ToArray();
-            };
-            ReadOnlyObservableCollection.prototype.IndexOf = function (value) {
-                return this._Source.IndexOf(value);
-            };
-            ReadOnlyObservableCollection.prototype.Contains = function (value) {
-                return this._Source.Contains(value);
-            };
-            ReadOnlyObservableCollection.prototype._OnCollectionChanged = function (sender, args) {
-                this.CollectionChanged.raise(this, args);
-            };
-            ReadOnlyObservableCollection.prototype._OnPropertyChanged = function (sender, args) {
-                this.PropertyChanged.raise(this, args);
-            };
-            ReadOnlyObservableCollection.prototype.SetValueAt = function (index, value) {
-                throw new Error("Collection is read only.");
-            };
-            ReadOnlyObservableCollection.prototype.Insert = function (index, value) {
-                throw new Error("Collection is read only.");
-            };
-            ReadOnlyObservableCollection.prototype.Add = function (value) {
-                throw new Error("Collection is read only.");
-            };
-            ReadOnlyObservableCollection.prototype.Remove = function (value) {
-                throw new Error("Collection is read only.");
-            };
-            ReadOnlyObservableCollection.prototype.RemoveAt = function (index) {
-                throw new Error("Collection is read only.");
-            };
-            ReadOnlyObservableCollection.prototype.Clear = function () {
-                throw new Error("Collection is read only.");
-            };
-            return ReadOnlyObservableCollection;
-        })();
-        Collections.ReadOnlyObservableCollection = ReadOnlyObservableCollection;
-        Fayde.CoreLibrary.add(Collections.ObservableCollection);
-        nullstone.addTypeInterfaces(ReadOnlyObservableCollection, nullstone.ICollection_, Collections.INotifyCollectionChanged_, Fayde.INotifyPropertyChanged_);
-    })(Collections = Fayde.Collections || (Fayde.Collections = {}));
 })(Fayde || (Fayde = {}));
 var Fayde;
 (function (Fayde) {
@@ -26270,6 +26284,176 @@ var Fayde;
         })(Effects = Media.Effects || (Media.Effects = {}));
     })(Media = Fayde.Media || (Fayde.Media = {}));
 })(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Media;
+    (function (Media) {
+        var LinearGradient;
+        (function (LinearGradient) {
+            function createRepeatInterpolator(start, end, bounds) {
+                var first = { x: start.x, y: start.y };
+                var last = { x: end.x, y: end.y };
+                var dir = { x: end.x - start.x, y: end.y - start.y };
+                LinearGradient.calcMetrics(dir, first, last, bounds);
+                var numSteps = (last.x - first.x) / dir.x;
+                var stepSize = 1.0 / numSteps;
+                var cur = -stepSize;
+                return {
+                    x0: first.x,
+                    y0: first.y,
+                    x1: last.x,
+                    y1: last.y,
+                    step: function () {
+                        cur += stepSize;
+                        return cur < 1;
+                    },
+                    interpolate: function (offset) {
+                        return cur + (offset / numSteps);
+                    }
+                };
+            }
+            LinearGradient.createRepeatInterpolator = createRepeatInterpolator;
+            function createReflectInterpolator(start, end, bounds) {
+                var first = { x: start.x, y: start.y };
+                var last = { x: end.x, y: end.y };
+                var dir = { x: end.x - start.x, y: end.y - start.y };
+                LinearGradient.calcMetrics(dir, first, last, bounds);
+                var numSteps = (last.x - first.x) / dir.x;
+                var stepSize = 1.0 / numSteps;
+                var cur = -stepSize;
+                var inverted = Math.round((start.x - first.x) / dir.x) % 2 === 0;
+                return {
+                    x0: first.x,
+                    y0: first.y,
+                    x1: last.x,
+                    y1: last.y,
+                    step: function () {
+                        inverted = !inverted;
+                        cur += stepSize;
+                        return cur < 1;
+                    },
+                    interpolate: function (offset) {
+                        var norm = offset / numSteps;
+                        return !inverted ? cur + norm : cur + (stepSize - norm);
+                    }
+                };
+            }
+            LinearGradient.createReflectInterpolator = createReflectInterpolator;
+        })(LinearGradient = Media.LinearGradient || (Media.LinearGradient = {}));
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+})(Fayde || (Fayde = {}));
+var Fayde;
+(function (Fayde) {
+    var Media;
+    (function (Media) {
+        var LinearGradient;
+        (function (LinearGradient) {
+            function calcMetrics(dir, first, last, bounds) {
+                if (dir.y === 0) {
+                    if (dir.x < 0)
+                        W(dir, first, last, bounds);
+                    else if (dir.x !== 0)
+                        E(dir, first, last, bounds);
+                }
+                else if (dir.x === 0) {
+                    if (dir.y < 0)
+                        N(dir, first, last, bounds);
+                    else if (dir.y !== 0)
+                        S(dir, first, last, bounds);
+                }
+                else if (dir.x < 0 && dir.y < 0) {
+                    NW(dir, first, last, bounds);
+                }
+                else if (dir.x < 0 && dir.y > 0) {
+                    SW(dir, first, last, bounds);
+                }
+                else if (dir.x > 0 && dir.y < 0) {
+                    NE(dir, first, last, bounds);
+                }
+                else if (dir.x > 0 && dir.y > 0) {
+                    SE(dir, first, last, bounds);
+                }
+            }
+            LinearGradient.calcMetrics = calcMetrics;
+            function E(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                while (first.x >= bounds.x)
+                    first.x -= dir.x;
+                while (last.x <= maxX)
+                    last.x += dir.x;
+            }
+            function W(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                while (first.x <= maxX)
+                    first.x -= dir.x;
+                while (last.x >= bounds.x)
+                    last.x += dir.x;
+            }
+            function S(dir, first, last, bounds) {
+                var maxY = bounds.y + bounds.height;
+                while (first.y >= bounds.y)
+                    first.y -= dir.y;
+                while (last.y <= maxY)
+                    last.y += dir.y;
+            }
+            function N(dir, first, last, bounds) {
+                var maxY = bounds.y + bounds.height;
+                while (first.y <= maxY)
+                    first.y -= dir.y;
+                while (last.y >= bounds.y)
+                    last.y += dir.y;
+            }
+            function NW(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                var maxY = bounds.y + bounds.height;
+                while (first.x <= maxX && first.y <= maxY) {
+                    first.x -= dir.x;
+                    first.y -= dir.y;
+                }
+                while (last.x >= bounds.x && last.y >= bounds.y) {
+                    last.x += dir.x;
+                    last.y += dir.y;
+                }
+            }
+            function SW(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                var maxY = bounds.y + bounds.height;
+                while (first.x <= maxX && first.y >= bounds.y) {
+                    first.x -= dir.x;
+                    first.y -= dir.y;
+                }
+                while (last.x >= bounds.x && last.y <= maxY) {
+                    last.x += dir.x;
+                    last.y += dir.y;
+                }
+            }
+            function NE(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                var maxY = bounds.y + bounds.height;
+                while (first.x >= bounds.x && first.y <= maxY) {
+                    first.x -= dir.x;
+                    first.y -= dir.y;
+                }
+                while (last.x <= maxX && last.y >= bounds.y) {
+                    last.x += dir.x;
+                    last.y += dir.y;
+                }
+            }
+            function SE(dir, first, last, bounds) {
+                var maxX = bounds.x + bounds.width;
+                var maxY = bounds.y + bounds.height;
+                while (first.x >= bounds.x && first.y >= bounds.y) {
+                    first.x -= dir.x;
+                    first.y -= dir.y;
+                }
+                while (last.x <= maxX && last.y <= maxY) {
+                    last.x += dir.x;
+                    last.y += dir.y;
+                }
+            }
+        })(LinearGradient = Media.LinearGradient || (Media.LinearGradient = {}));
+    })(Media = Fayde.Media || (Fayde.Media = {}));
+})(Fayde || (Fayde = {}));
 /// <reference path="../../Core/DependencyObject.ts"/>
 var Fayde;
 (function (Fayde) {
@@ -26566,176 +26750,6 @@ var Fayde;
                     && bytes[7] === 0x0A;
             }
         })(Imaging = Media.Imaging || (Media.Imaging = {}));
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Media;
-    (function (Media) {
-        var LinearGradient;
-        (function (LinearGradient) {
-            function createRepeatInterpolator(start, end, bounds) {
-                var first = { x: start.x, y: start.y };
-                var last = { x: end.x, y: end.y };
-                var dir = { x: end.x - start.x, y: end.y - start.y };
-                LinearGradient.calcMetrics(dir, first, last, bounds);
-                var numSteps = (last.x - first.x) / dir.x;
-                var stepSize = 1.0 / numSteps;
-                var cur = -stepSize;
-                return {
-                    x0: first.x,
-                    y0: first.y,
-                    x1: last.x,
-                    y1: last.y,
-                    step: function () {
-                        cur += stepSize;
-                        return cur < 1;
-                    },
-                    interpolate: function (offset) {
-                        return cur + (offset / numSteps);
-                    }
-                };
-            }
-            LinearGradient.createRepeatInterpolator = createRepeatInterpolator;
-            function createReflectInterpolator(start, end, bounds) {
-                var first = { x: start.x, y: start.y };
-                var last = { x: end.x, y: end.y };
-                var dir = { x: end.x - start.x, y: end.y - start.y };
-                LinearGradient.calcMetrics(dir, first, last, bounds);
-                var numSteps = (last.x - first.x) / dir.x;
-                var stepSize = 1.0 / numSteps;
-                var cur = -stepSize;
-                var inverted = Math.round((start.x - first.x) / dir.x) % 2 === 0;
-                return {
-                    x0: first.x,
-                    y0: first.y,
-                    x1: last.x,
-                    y1: last.y,
-                    step: function () {
-                        inverted = !inverted;
-                        cur += stepSize;
-                        return cur < 1;
-                    },
-                    interpolate: function (offset) {
-                        var norm = offset / numSteps;
-                        return !inverted ? cur + norm : cur + (stepSize - norm);
-                    }
-                };
-            }
-            LinearGradient.createReflectInterpolator = createReflectInterpolator;
-        })(LinearGradient = Media.LinearGradient || (Media.LinearGradient = {}));
-    })(Media = Fayde.Media || (Fayde.Media = {}));
-})(Fayde || (Fayde = {}));
-var Fayde;
-(function (Fayde) {
-    var Media;
-    (function (Media) {
-        var LinearGradient;
-        (function (LinearGradient) {
-            function calcMetrics(dir, first, last, bounds) {
-                if (dir.y === 0) {
-                    if (dir.x < 0)
-                        W(dir, first, last, bounds);
-                    else if (dir.x !== 0)
-                        E(dir, first, last, bounds);
-                }
-                else if (dir.x === 0) {
-                    if (dir.y < 0)
-                        N(dir, first, last, bounds);
-                    else if (dir.y !== 0)
-                        S(dir, first, last, bounds);
-                }
-                else if (dir.x < 0 && dir.y < 0) {
-                    NW(dir, first, last, bounds);
-                }
-                else if (dir.x < 0 && dir.y > 0) {
-                    SW(dir, first, last, bounds);
-                }
-                else if (dir.x > 0 && dir.y < 0) {
-                    NE(dir, first, last, bounds);
-                }
-                else if (dir.x > 0 && dir.y > 0) {
-                    SE(dir, first, last, bounds);
-                }
-            }
-            LinearGradient.calcMetrics = calcMetrics;
-            function E(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                while (first.x >= bounds.x)
-                    first.x -= dir.x;
-                while (last.x <= maxX)
-                    last.x += dir.x;
-            }
-            function W(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                while (first.x <= maxX)
-                    first.x -= dir.x;
-                while (last.x >= bounds.x)
-                    last.x += dir.x;
-            }
-            function S(dir, first, last, bounds) {
-                var maxY = bounds.y + bounds.height;
-                while (first.y >= bounds.y)
-                    first.y -= dir.y;
-                while (last.y <= maxY)
-                    last.y += dir.y;
-            }
-            function N(dir, first, last, bounds) {
-                var maxY = bounds.y + bounds.height;
-                while (first.y <= maxY)
-                    first.y -= dir.y;
-                while (last.y >= bounds.y)
-                    last.y += dir.y;
-            }
-            function NW(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                var maxY = bounds.y + bounds.height;
-                while (first.x <= maxX && first.y <= maxY) {
-                    first.x -= dir.x;
-                    first.y -= dir.y;
-                }
-                while (last.x >= bounds.x && last.y >= bounds.y) {
-                    last.x += dir.x;
-                    last.y += dir.y;
-                }
-            }
-            function SW(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                var maxY = bounds.y + bounds.height;
-                while (first.x <= maxX && first.y >= bounds.y) {
-                    first.x -= dir.x;
-                    first.y -= dir.y;
-                }
-                while (last.x >= bounds.x && last.y <= maxY) {
-                    last.x += dir.x;
-                    last.y += dir.y;
-                }
-            }
-            function NE(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                var maxY = bounds.y + bounds.height;
-                while (first.x >= bounds.x && first.y <= maxY) {
-                    first.x -= dir.x;
-                    first.y -= dir.y;
-                }
-                while (last.x <= maxX && last.y >= bounds.y) {
-                    last.x += dir.x;
-                    last.y += dir.y;
-                }
-            }
-            function SE(dir, first, last, bounds) {
-                var maxX = bounds.x + bounds.width;
-                var maxY = bounds.y + bounds.height;
-                while (first.x >= bounds.x && first.y >= bounds.y) {
-                    first.x -= dir.x;
-                    first.y -= dir.y;
-                }
-                while (last.x <= maxX && last.y <= maxY) {
-                    last.x += dir.x;
-                    last.y += dir.y;
-                }
-            }
-        })(LinearGradient = Media.LinearGradient || (Media.LinearGradient = {}));
     })(Media = Fayde.Media || (Fayde.Media = {}));
 })(Fayde || (Fayde = {}));
 var Fayde;
