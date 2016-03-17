@@ -28,6 +28,8 @@ module Fayde.Controls {
         private $WatermarkElement: FrameworkElement;
         private _NullSelFallback: any;
         private _FocusedIndex: number = -1;
+        private _FirstOpen: boolean = false;
+        private _RowHeight: number = 0;
 
         constructor() {
             super();
@@ -41,13 +43,19 @@ module Fayde.Controls {
                 this.$Popup.IsOpen = open;
             if (this.$DropDownToggle != null)
                 this.$DropDownToggle.IsChecked = open;
-
+                
             if (open) {
                 this._FocusedIndex = this.Items.Count > 0 ? Math.max(this.SelectedIndex, 0) : -1;
                 if (this._FocusedIndex > -1) {
                     var focusedItem = this.ItemContainersManager.ContainerFromIndex(this._FocusedIndex);
                     if (focusedItem instanceof ComboBoxItem)
                         (<ComboBoxItem>focusedItem).Focus();
+                    
+                    if ((<ComboBoxItem>focusedItem).ActualHeight <= 0)
+                        this._FirstOpen = true;
+                    
+                    if (focusedItem !== undefined && focusedItem !== null)
+                        if (this.$TemplateScrollViewer) this.$TemplateScrollViewer.ScrollToVerticalOffset(this._FocusedIndex * (<ComboBoxItem>focusedItem).ActualHeight);
                 }
 
                 this.LayoutUpdated.on(this._UpdatePopupSizeAndPosition, this);
@@ -297,6 +305,7 @@ module Fayde.Controls {
 
             this.$ContentPresenter.Content = this.$SelectionBoxItem;
             this.$ContentPresenter.ContentTemplate = this.$SelectionBoxItemTemplate;
+            this._CheckWatermarkVisibility();
         }
         private _UpdatePopupSizeAndPosition(sender, e: nullstone.IEventArgs) {
             var popup = this.$Popup;
@@ -356,6 +365,20 @@ module Fayde.Controls {
             popup.VerticalOffset = finalOffset.y;
 
             this._UpdatePopupMaxHeight(this.MaxDropDownHeight);
+            
+            if (this._FirstOpen) {
+                this._FirstOpen = false;
+                this.$TemplateScrollViewer.InvalidateScrollInfo();
+                var icm = this.ItemContainersManager;
+                var selectedIndex = this.SelectedIndex;
+                var temp = icm.ContainerFromIndex(selectedIndex);
+                if (temp instanceof ComboBoxItem) {
+                    var tmp = <ComboBoxItem>temp;
+                    this.$TemplateScrollViewer.ScrollToVerticalOffset(this._FocusedIndex * tmp.ActualHeight);
+                }
+                else
+                    this.$TemplateScrollViewer.ScrollToVerticalOffset(this._FocusedIndex * 25);
+            }
         }
         private _UpdatePopupMaxHeight(height: number) {
             var child: FrameworkElement;

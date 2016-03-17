@@ -65,119 +65,6 @@ declare module Fayde.Clipboard {
         private $$notify;
     }
 }
-declare module Fayde.Collections {
-    enum CollectionChangedAction {
-        Add = 1,
-        Remove = 2,
-        Replace = 3,
-        Reset = 4,
-    }
-    class CollectionChangedEventArgs implements nullstone.IEventArgs {
-        Action: CollectionChangedAction;
-        OldStartingIndex: number;
-        NewStartingIndex: number;
-        OldItems: any[];
-        NewItems: any[];
-        static Reset(allValues: any[]): CollectionChangedEventArgs;
-        static Replace(newValue: any, oldValue: any, index: number): CollectionChangedEventArgs;
-        static Add(newValue: any, index: number): CollectionChangedEventArgs;
-        static AddRange(newValues: any[], index: number): CollectionChangedEventArgs;
-        static Remove(oldValue: any, index: number): CollectionChangedEventArgs;
-    }
-}
-declare module Fayde.Collections {
-    interface INotifyCollectionChanged {
-        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
-    }
-    var INotifyCollectionChanged_: nullstone.Interface<INotifyCollectionChanged>;
-}
-declare module Fayde {
-    class PropertyChangedEventArgs implements nullstone.IEventArgs {
-        PropertyName: string;
-        constructor(propertyName: string);
-    }
-    interface INotifyPropertyChanged {
-        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
-    }
-    var INotifyPropertyChanged_: nullstone.Interface<INotifyPropertyChanged>;
-}
-declare module Fayde.Collections {
-    class ObservableCollection<T> implements nullstone.IEnumerable<T>, nullstone.ICollection<T>, INotifyCollectionChanged, INotifyPropertyChanged {
-        private _ht;
-        getEnumerator(): nullstone.IEnumerator<T>;
-        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
-        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
-        Count: number;
-        ToArray(): T[];
-        GetValueAt(index: number): T;
-        SetValueAt(index: number, value: T): void;
-        Add(value: T): void;
-        AddRange(values: T[]): void;
-        Insert(index: number, value: T): void;
-        IndexOf(value: T): number;
-        Contains(value: T): boolean;
-        Remove(value: T): boolean;
-        RemoveAt(index: number): void;
-        Clear(): void;
-        private _RaisePropertyChanged(propertyName);
-    }
-}
-declare module Fayde.Collections {
-    class DeepObservableCollection<T> extends ObservableCollection<T> {
-        ItemPropertyChanged: nullstone.Event<ItemPropertyChangedEventArgs<T>>;
-        constructor();
-        private _OnCollectionChanged(sender, e);
-        private _OnItemPropertyChanged(sender, e);
-    }
-}
-declare module Fayde.Collections {
-    interface IFilterItemFunc<T> {
-        (item: T): boolean;
-    }
-    interface IFilterItemIndexFunc<T> {
-        (item: T, index: number): boolean;
-    }
-    class FilteredCollection<T> extends DeepObservableCollection<T> {
-        private _Source;
-        Source: DeepObservableCollection<T>;
-        private _Filter;
-        Filter: IFilterItemIndexFunc<T>;
-        constructor(filter?: IFilterItemFunc<T>, source?: DeepObservableCollection<T>);
-        constructor(filter?: IFilterItemIndexFunc<T>, source?: DeepObservableCollection<T>);
-        private _SetSource(source);
-        private _OnSourceCollectionChanged(sender, e);
-        private _OnSourceItemPropertyChanged(sender, e);
-        Update(): void;
-    }
-}
-declare module Fayde.Collections {
-    class ItemPropertyChangedEventArgs<T> extends PropertyChangedEventArgs {
-        Item: T;
-        constructor(item: T, propertyName: string);
-    }
-}
-declare module Fayde.Collections {
-    class ReadOnlyObservableCollection<T> implements nullstone.ICollection<T>, INotifyCollectionChanged, INotifyPropertyChanged {
-        Count: number;
-        private _Source;
-        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
-        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
-        constructor(source: ObservableCollection<T>);
-        GetValueAt(index: number): T;
-        getEnumerator(): nullstone.IEnumerator<T>;
-        ToArray(): T[];
-        IndexOf(value: T): number;
-        Contains(value: T): boolean;
-        private _OnCollectionChanged(sender, args);
-        private _OnPropertyChanged(sender, args);
-        SetValueAt(index: number, value: T): void;
-        Insert(index: number, value: T): void;
-        Add(value: T): void;
-        Remove(value: T): boolean;
-        RemoveAt(index: number): void;
-        Clear(): void;
-    }
-}
 declare module Fayde {
     interface IIsAttachedMonitor {
         Callback: (newIsAttached: boolean) => void;
@@ -1572,6 +1459,8 @@ declare module Fayde.Controls {
         private $WatermarkElement;
         private _NullSelFallback;
         private _FocusedIndex;
+        private _FirstOpen;
+        private _RowHeight;
         constructor();
         private _IsDropDownOpenChanged(args);
         private _MaxDropDownHeightChanged(args);
@@ -2448,6 +2337,119 @@ declare module Fayde.Controls {
     class WebBrowser extends Controls.Control {
         HTML: any;
         constructor();
+    }
+}
+declare module Fayde.Collections {
+    enum CollectionChangedAction {
+        Add = 1,
+        Remove = 2,
+        Replace = 3,
+        Reset = 4,
+    }
+    class CollectionChangedEventArgs implements nullstone.IEventArgs {
+        Action: CollectionChangedAction;
+        OldStartingIndex: number;
+        NewStartingIndex: number;
+        OldItems: any[];
+        NewItems: any[];
+        static Reset(allValues: any[]): CollectionChangedEventArgs;
+        static Replace(newValue: any, oldValue: any, index: number): CollectionChangedEventArgs;
+        static Add(newValue: any, index: number): CollectionChangedEventArgs;
+        static AddRange(newValues: any[], index: number): CollectionChangedEventArgs;
+        static Remove(oldValue: any, index: number): CollectionChangedEventArgs;
+    }
+}
+declare module Fayde.Collections {
+    interface INotifyCollectionChanged {
+        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
+    }
+    var INotifyCollectionChanged_: nullstone.Interface<INotifyCollectionChanged>;
+}
+declare module Fayde {
+    class PropertyChangedEventArgs implements nullstone.IEventArgs {
+        PropertyName: string;
+        constructor(propertyName: string);
+    }
+    interface INotifyPropertyChanged {
+        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
+    }
+    var INotifyPropertyChanged_: nullstone.Interface<INotifyPropertyChanged>;
+}
+declare module Fayde.Collections {
+    class ObservableCollection<T> implements nullstone.IEnumerable<T>, nullstone.ICollection<T>, INotifyCollectionChanged, INotifyPropertyChanged {
+        private _ht;
+        getEnumerator(): nullstone.IEnumerator<T>;
+        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
+        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
+        Count: number;
+        ToArray(): T[];
+        GetValueAt(index: number): T;
+        SetValueAt(index: number, value: T): void;
+        Add(value: T): void;
+        AddRange(values: T[]): void;
+        Insert(index: number, value: T): void;
+        IndexOf(value: T): number;
+        Contains(value: T): boolean;
+        Remove(value: T): boolean;
+        RemoveAt(index: number): void;
+        Clear(): void;
+        private _RaisePropertyChanged(propertyName);
+    }
+}
+declare module Fayde.Collections {
+    class DeepObservableCollection<T> extends ObservableCollection<T> {
+        ItemPropertyChanged: nullstone.Event<ItemPropertyChangedEventArgs<T>>;
+        constructor();
+        private _OnCollectionChanged(sender, e);
+        private _OnItemPropertyChanged(sender, e);
+    }
+}
+declare module Fayde.Collections {
+    interface IFilterItemFunc<T> {
+        (item: T): boolean;
+    }
+    interface IFilterItemIndexFunc<T> {
+        (item: T, index: number): boolean;
+    }
+    class FilteredCollection<T> extends DeepObservableCollection<T> {
+        private _Source;
+        Source: DeepObservableCollection<T>;
+        private _Filter;
+        Filter: IFilterItemIndexFunc<T>;
+        constructor(filter?: IFilterItemFunc<T>, source?: DeepObservableCollection<T>);
+        constructor(filter?: IFilterItemIndexFunc<T>, source?: DeepObservableCollection<T>);
+        private _SetSource(source);
+        private _OnSourceCollectionChanged(sender, e);
+        private _OnSourceItemPropertyChanged(sender, e);
+        Update(): void;
+    }
+}
+declare module Fayde.Collections {
+    class ItemPropertyChangedEventArgs<T> extends PropertyChangedEventArgs {
+        Item: T;
+        constructor(item: T, propertyName: string);
+    }
+}
+declare module Fayde.Collections {
+    class ReadOnlyObservableCollection<T> implements nullstone.ICollection<T>, INotifyCollectionChanged, INotifyPropertyChanged {
+        Count: number;
+        private _Source;
+        CollectionChanged: nullstone.Event<CollectionChangedEventArgs>;
+        PropertyChanged: nullstone.Event<PropertyChangedEventArgs>;
+        constructor(source: ObservableCollection<T>);
+        GetValueAt(index: number): T;
+        getEnumerator(): nullstone.IEnumerator<T>;
+        ToArray(): T[];
+        IndexOf(value: T): number;
+        Contains(value: T): boolean;
+        private _OnCollectionChanged(sender, args);
+        private _OnPropertyChanged(sender, args);
+        SetValueAt(index: number, value: T): void;
+        Insert(index: number, value: T): void;
+        Add(value: T): void;
+        Remove(value: T): boolean;
+        RemoveAt(index: number): void;
+        Clear(): void;
     }
 }
 interface ICloneable {
@@ -5328,6 +5330,39 @@ declare module Fayde.Markup.Internal {
     }
     function createResourcesActor(cur: IActiveObject, resources: ResourceDictionary[]): IResourcesActor;
 }
+declare module Fayde.Media.Effects {
+    class Effect extends DependencyObject implements minerva.IEffect {
+        static EffectMappingProperty: DependencyProperty;
+        EffectMapping: GeneralTransform;
+        PreRender(ctx: minerva.core.render.RenderContext): void;
+        PostRender(ctx: minerva.core.render.RenderContext): void;
+        GetPadding(thickness: Thickness): boolean;
+    }
+}
+declare module Fayde.Media.Effects {
+    class BlurEffect extends Effect {
+        static RadiusProperty: DependencyProperty;
+        Radius: number;
+    }
+}
+declare module Fayde.Media.Effects {
+    class DropShadowEffect extends Effect {
+        static MAX_BLUR_RADIUS: number;
+        static MAX_SHADOW_DEPTH: number;
+        static BlurRadiusProperty: DependencyProperty;
+        static ColorProperty: DependencyProperty;
+        static DirectionProperty: DependencyProperty;
+        static OpacityProperty: DependencyProperty;
+        static ShadowDepthProperty: DependencyProperty;
+        BlurRadius: number;
+        Color: Color;
+        Direction: number;
+        Opacity: number;
+        ShadowDepth: number;
+        GetPadding(thickness: Thickness): boolean;
+        PreRender(ctx: minerva.core.render.RenderContext): void;
+    }
+}
 declare module Fayde.Media.Animation {
     enum EasingMode {
         EaseOut = 0,
@@ -5795,39 +5830,6 @@ declare module Fayde.Media.Animation {
         Stop(): void;
         UpdateInternal(clockData: IClockData): void;
         GetNaturalDurationCore(): Duration;
-    }
-}
-declare module Fayde.Media.Effects {
-    class Effect extends DependencyObject implements minerva.IEffect {
-        static EffectMappingProperty: DependencyProperty;
-        EffectMapping: GeneralTransform;
-        PreRender(ctx: minerva.core.render.RenderContext): void;
-        PostRender(ctx: minerva.core.render.RenderContext): void;
-        GetPadding(thickness: Thickness): boolean;
-    }
-}
-declare module Fayde.Media.Effects {
-    class BlurEffect extends Effect {
-        static RadiusProperty: DependencyProperty;
-        Radius: number;
-    }
-}
-declare module Fayde.Media.Effects {
-    class DropShadowEffect extends Effect {
-        static MAX_BLUR_RADIUS: number;
-        static MAX_SHADOW_DEPTH: number;
-        static BlurRadiusProperty: DependencyProperty;
-        static ColorProperty: DependencyProperty;
-        static DirectionProperty: DependencyProperty;
-        static OpacityProperty: DependencyProperty;
-        static ShadowDepthProperty: DependencyProperty;
-        BlurRadius: number;
-        Color: Color;
-        Direction: number;
-        Opacity: number;
-        ShadowDepth: number;
-        GetPadding(thickness: Thickness): boolean;
-        PreRender(ctx: minerva.core.render.RenderContext): void;
     }
 }
 declare module Fayde.Media.LinearGradient {

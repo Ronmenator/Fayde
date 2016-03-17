@@ -113,10 +113,8 @@ module Fayde.Controls.Primitives {
                     var lbi: ListBoxItem;
                     if (e.NewItems[0] instanceof ListBoxItem) lbi = <ListBoxItem>e.NewItems[0];
                     if (lbi != null && lbi.IsSelected && !this.SelectedItems.Contains(lbi)) {
-                        if (tsv) tsv.ScrollToVerticalOffset(0);
                         this._Selection.Select(lbi);
                     } else if (this.SelectedItem != null) {
-                        if (tsv) tsv.ScrollToVerticalOffset(0);
                         this._Selection.Select(this.SelectedItem);
                     }
                     break;
