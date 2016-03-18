@@ -47,15 +47,20 @@ module Fayde.Controls {
             if (open) {
                 this._FocusedIndex = this.Items.Count > 0 ? Math.max(this.SelectedIndex, 0) : -1;
                 if (this._FocusedIndex > -1) {
+                    var tsv = <ScrollViewer>this.$TemplateScrollViewer;
                     var focusedItem = this.ItemContainersManager.ContainerFromIndex(this._FocusedIndex);
-                    if (focusedItem instanceof ComboBoxItem)
-                        (<ComboBoxItem>focusedItem).Focus();
-                    
-                    if ((<ComboBoxItem>focusedItem).ActualHeight <= 0)
-                        this._FirstOpen = true;
-                    
-                    if (focusedItem !== undefined && focusedItem !== null)
-                        if (this.$TemplateScrollViewer) this.$TemplateScrollViewer.ScrollToVerticalOffset(this._FocusedIndex * (<ComboBoxItem>focusedItem).ActualHeight);
+                    if (focusedItem instanceof ComboBoxItem) {
+                        var item = <ComboBoxItem>focusedItem;
+                        
+                        item.Focus();
+                                            
+                        if (item.ActualHeight <= 0)
+                            this._FirstOpen = true;
+
+                        if (tsv) tsv.ScrollToVerticalOffset(this._FocusedIndex * item.ActualHeight);
+                    }
+                    else
+                        if (tsv) tsv.ScrollToVerticalOffset(this._FocusedIndex * 25);
                 }
 
                 this.LayoutUpdated.on(this._UpdatePopupSizeAndPosition, this);
