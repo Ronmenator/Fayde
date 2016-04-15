@@ -1642,6 +1642,17 @@
         </Setter>
     </Style>
 
+    <Style TargetType="HtmlFrame" x:Key="DefaultHtmlFrame">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBox">
+                    <Grid Background="{TemplateBinding Background}">
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!--ListBox Style -->
     <Style TargetType="ListBox" x:Key="DefaultListBoxStyle">
         <Setter Property="Padding" Value="1"/>
@@ -2981,4 +2992,5 @@
     <Style TargetType="ToolTip" BasedOn="{StaticResource DefaultToolTipStyle}"/>
     <Style TargetType="HeaderedContentControl" BasedOn="{StaticResource DefaultHeaderedContentControlStyle}"/>
     <Style TargetType="Dialog" BasedOn="{StaticResource DefaultDialogStyle}"/>
+    <Style TargetType="HtmlFrame" BasedOn="{StaticResource DefaultHtmlFrame}" />
 </ResourceDictionary>

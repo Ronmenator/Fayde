@@ -1,0 +1,19 @@
+﻿﻿<Application
+    xmlns="http://schemas.wsick.com/fayde"
+    xmlns:x="http://schemas.wsick.com/fayde/x"
+    ThemeName="Metro">
+    
+    <Grid Background="DarkGreen">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="50" />
+        </Grid.RowDefinitions>
+        
+        <HtmlFrame Source="http://localhost:7001/inside.html"
+                   Background="Red"
+                   Grid.Row="1"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch"/>
+    </Grid>
+</Application>
