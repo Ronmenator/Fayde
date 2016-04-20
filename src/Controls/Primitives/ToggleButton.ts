@@ -62,9 +62,9 @@ module Fayde.Controls.Primitives {
         OnToggle() {
             var isChecked = this.IsChecked;
             if (isChecked === true) {
-                this.SetCurrentValue(ToggleButton.IsCheckedProperty, this.IsThreeState ? null : false);
+                this.IsChecked = this.IsThreeState ? null : false;
             } else {
-                this.SetCurrentValue(ToggleButton.IsCheckedProperty, isChecked != null);
+                this.IsChecked = isChecked != null;
             }
         }
     }

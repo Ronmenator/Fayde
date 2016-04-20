@@ -13,11 +13,9 @@ module Fayde.Controls {
         static ItemContainerStyleProperty = DependencyProperty.Register("ItemContainerStyle", () => Style, ComboBox, undefined, (d, args) => (<ListBox>d).OnItemContainerStyleChanged(args));
         static MaxDropDownHeightProperty = DependencyProperty.Register("MaxDropDownHeight", () => Number, ComboBox, Number.POSITIVE_INFINITY, (d, args) => (<ComboBox>d)._MaxDropDownHeightChanged(args));
         static IsSelectionActiveProperty = Primitives.Selector.IsSelectionActiveProperty;
-        static WatermarkProperty = DependencyProperty.Register("Watermark", () => String, ComboBox, "");
         IsDropDownOpen: boolean;
         ItemContainerStyle: Style;
         MaxDropDownHeight: number;
-        Watermark: String;
 
         private $ContentPresenter: ContentPresenter;
         private $Popup: Primitives.Popup;
@@ -25,11 +23,8 @@ module Fayde.Controls {
         private $DisplayedItem: ComboBoxItem = null;
         private $SelectionBoxItem: any = null;
         private $SelectionBoxItemTemplate: DataTemplate = null;
-        private $WatermarkElement: FrameworkElement;
         private _NullSelFallback: any;
         private _FocusedIndex: number = -1;
-        private _FirstOpen: boolean = false;
-        private _RowHeight: number = 0;
 
         constructor() {
             super();
@@ -43,24 +38,13 @@ module Fayde.Controls {
                 this.$Popup.IsOpen = open;
             if (this.$DropDownToggle != null)
                 this.$DropDownToggle.IsChecked = open;
-                
+
             if (open) {
                 this._FocusedIndex = this.Items.Count > 0 ? Math.max(this.SelectedIndex, 0) : -1;
                 if (this._FocusedIndex > -1) {
-                    var tsv = <ScrollViewer>this.$TemplateScrollViewer;
                     var focusedItem = this.ItemContainersManager.ContainerFromIndex(this._FocusedIndex);
-                    if (focusedItem instanceof ComboBoxItem) {
-                        var item = <ComboBoxItem>focusedItem;
-                        
-                        item.Focus();
-                                            
-                        if (item.ActualHeight <= 0)
-                            this._FirstOpen = true;
-
-                        if (tsv) tsv.ScrollToVerticalOffset(this._FocusedIndex * item.ActualHeight);
-                    }
-                    else
-                        if (tsv) tsv.ScrollToVerticalOffset(this._FocusedIndex * 25);
+                    if (focusedItem instanceof ComboBoxItem)
+                        (<ComboBoxItem>focusedItem).Focus();
                 }
 
                 this.LayoutUpdated.on(this._UpdatePopupSizeAndPosition, this);
@@ -74,7 +58,6 @@ module Fayde.Controls {
             var selectedItem = this.SelectedItem;
             this._UpdateDisplayedItem(open && selectedItem instanceof Fayde.UIElement ? null : selectedItem);
             this.UpdateVisualState(true);
-            this._CheckWatermarkVisibility();
         }
         private _MaxDropDownHeightChanged(args: IDependencyPropertyChangedEventArgs) {
             this._UpdatePopupMaxHeight(args.NewValue);
@@ -93,7 +76,6 @@ module Fayde.Controls {
             this.$ContentPresenter = this._GetChildOfType("ContentPresenter", ContentPresenter);
             this.$Popup = this._GetChildOfType("Popup", Primitives.Popup);
             this.$DropDownToggle = this._GetChildOfType("DropDownToggle", Primitives.ToggleButton);
-            this.$WatermarkElement = <FrameworkElement>this.GetTemplateChild("WatermarkElement", FrameworkElement);
 
             if (this.$ContentPresenter != null)
                 this._NullSelFallback = this.$ContentPresenter.Content;
@@ -192,6 +174,8 @@ module Fayde.Controls {
                     this.IsDropDownOpen = false;
                     break;
                 case Input.Key.Enter:
+                    this.IsDropDownOpen = false;
+                    break;
                 case Input.Key.Space:
                     if (this.IsDropDownOpen && this._FocusedIndex !== this.SelectedIndex) {
                         this.SelectedIndex = this._FocusedIndex;
@@ -227,12 +211,6 @@ module Fayde.Controls {
                     break;
             }
         }
-                
-        private _CheckWatermarkVisibility() {
-            if (this.Watermark.length > 0 && this.$WatermarkElement)
-                this.$WatermarkElement.Visibility = this.$SelectionBoxItem != null ? Visibility.Collapsed : Visibility.Visible;
-        }
-        
         OnGotFocus(e: RoutedEventArgs) {
             super.OnGotFocus(e);
             this.UpdateVisualState(true);
@@ -249,7 +227,6 @@ module Fayde.Controls {
         OnSelectionChanged(e: Primitives.SelectionChangedEventArgs) {
             if (!this.IsDropDownOpen)
                 this._UpdateDisplayedItem(this.SelectedItem);
-            this._CheckWatermarkVisibility();
         }
         private _OnToggleChecked(sender, e) { this.IsDropDownOpen = true; }
         private _OnToggleUnchecked(sender, e) { this.IsDropDownOpen = false; }
@@ -310,7 +287,6 @@ module Fayde.Controls {
 
             this.$ContentPresenter.Content = this.$SelectionBoxItem;
             this.$ContentPresenter.ContentTemplate = this.$SelectionBoxItemTemplate;
-            this._CheckWatermarkVisibility();
         }
         private _UpdatePopupSizeAndPosition(sender, e: nullstone.IEventArgs) {
             var popup = this.$Popup;
@@ -370,20 +346,6 @@ module Fayde.Controls {
             popup.VerticalOffset = finalOffset.y;
 
             this._UpdatePopupMaxHeight(this.MaxDropDownHeight);
-            
-            if (this._FirstOpen) {
-                this._FirstOpen = false;
-                this.$TemplateScrollViewer.InvalidateScrollInfo();
-                var icm = this.ItemContainersManager;
-                var selectedIndex = this.SelectedIndex;
-                var temp = icm.ContainerFromIndex(selectedIndex);
-                if (temp instanceof ComboBoxItem) {
-                    var tmp = <ComboBoxItem>temp;
-                    this.$TemplateScrollViewer.ScrollToVerticalOffset(this._FocusedIndex * tmp.ActualHeight);
-                }
-                else
-                    this.$TemplateScrollViewer.ScrollToVerticalOffset(this._FocusedIndex * 25);
-            }
         }
         private _UpdatePopupMaxHeight(height: number) {
             var child: FrameworkElement;
@@ -403,8 +365,7 @@ module Fayde.Controls {
         { Name: "Popup", Type: Primitives.Popup },
         { Name: "ContentPresenterBorder", Type: FrameworkElement },
         { Name: "DropDownToggle", Type: Primitives.ToggleButton },
-        { Name: "ScrollViewer", Type: ScrollViewer },
-        { Name: "WatermarkElement", Type: FrameworkElement });
+        { Name: "ScrollViewer", Type: ScrollViewer });
     TemplateVisualStates(ComboBox, 
         { GroupName: "CommonStates", Name: "Normal" },
         { GroupName: "CommonStates", Name: "MouseOver" },

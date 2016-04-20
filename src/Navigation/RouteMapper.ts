@@ -8,26 +8,17 @@ module Fayde.Navigation {
         RouteMappings: XamlObjectCollection<RouteMapping>;
         ViewModelProvider: Fayde.MVVM.IViewModelProvider;
 
-        constructor() {
+        constructor () {
             super();
             RouteMapper.RouteMappingsProperty.Initialize(this);
         }
 
-        MapUri(uri: Uri): Route {
-            var redirect = {
-                uri: null,
-                do(newUri: string|Uri) {
-                    redirect.uri = newUri;
-                }
-            };
-
+        MapUri (uri: Uri): Route {
             var mapped: Route;
             for (var en = this.RouteMappings.getEnumerator(); en.moveNext();) {
                 mapped = en.current.MapUri(uri);
                 if (mapped) {
-                    var vm: any = this.ViewModelProvider ? this.ViewModelProvider.ResolveViewModel(mapped, redirect.do) : null;
-                    if (redirect.uri)
-                        return new RedirectRoute(mapped, redirect.uri);
+                    var vm: any = this.ViewModelProvider ? this.ViewModelProvider.ResolveViewModel(mapped) : null;
                     mapped.DataContext = vm;
                     return mapped;
                 }

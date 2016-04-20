@@ -16,7 +16,7 @@
     <Color x:Key="AccentColor3">#66119EDA</Color>
     <!--20%-->
     <Color x:Key="AccentColor4">#33119EDA</Color>
-    
+
     <!--BASE COLORS-->
     <Color x:Key="BlackColor">#FF000000</Color>
     <Color x:Key="WhiteColor">#FFFFFFFF</Color>
@@ -719,29 +719,29 @@
                         <Grid Margin="0,1,0,0">
                             <Border x:Name="ReadOnlyVisualElement" Background="{StaticResource ReadOnlyBrush}"
                                     Opacity="0"/>
-                            <Grid>
-                                <ScrollViewer BorderThickness="0"
-                                            x:Name="ScrollElement" 
-                                            IsTabStop="False"
-                                            Background="{x:Null}"
-                                            VerticalAlignment="Stretch" 
-                                            HorizontalAlignment="Stretch" 
-                                            VerticalScrollBarVisibility="Auto"
-                                            HorizontalScrollBarVisibility="Disabled">
-                                    <ScrollViewer x:Name="ContentElement" 
-                                                BorderThickness="0" 
-                                                IsTabStop="False"
-                                                Margin="4,0,2,2" 
-                                                Background="{x:Null}"
-                                                HorizontalAlignment="{TemplateBinding TextAlignment}"
-                                                VerticalScrollBarVisibility="Disabled"
-                                                HorizontalScrollBarVisibility="Disabled" />
-                                </ScrollViewer>
-                                              
-                                <TextBlock Text="{TemplateBinding Watermark}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
-                                           HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Foreground="{TemplateBinding Foreground}" FontStyle="Italic" 
-                                           x:Name="WatermarkElement" Margin="4,0,2,2"/>
-                            </Grid>
+                          <Grid>
+                            <ScrollViewer BorderThickness="0"
+                                        x:Name="ScrollElement"
+                                        IsTabStop="False"
+                                        Background="{x:Null}"
+                                        VerticalAlignment="Stretch"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalScrollBarVisibility="Auto" Padding="4,4,4,2"
+                                        HorizontalScrollBarVisibility="Disabled">
+                              <ScrollViewer x:Name="ContentElement"
+                                          BorderThickness="0"
+                                          IsTabStop="False"
+                                          Margin="4,0,2,2" 
+                                          Background="{x:Null}"
+                                          HorizontalAlignment="{TemplateBinding TextAlignment}"
+                                          VerticalScrollBarVisibility="Disabled"
+                                          HorizontalScrollBarVisibility="Disabled" Padding="0,2,0,0"/>
+                            </ScrollViewer>
+
+                            <TextBlock Text="{TemplateBinding Watermark}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" Foreground="{TemplateBinding Foreground}" FontStyle="Italic"
+                                       x:Name="WatermarkElement" Margin="4,0,2,2" />
+                          </Grid>
                         </Grid>
                         <Rectangle x:Name="DisabledVisualElement" Stroke="{StaticResource ControlsDisabledBrush}"
                                    StrokeThickness="{TemplateBinding BorderThickness}"
@@ -1642,20 +1642,9 @@
         </Setter>
     </Style>
 
-    <Style TargetType="HtmlFrame" x:Key="DefaultHtmlFrame">
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="ListBox">
-                    <Grid Background="{TemplateBinding Background}">
-                    </Grid>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <!--ListBox Style -->
     <Style TargetType="ListBox" x:Key="DefaultListBoxStyle">
-        <Setter Property="Padding" Value="1"/>
+        <Setter Property="Padding" Value="1,1,1,10"/>
         <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
         <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
         <Setter Property="FontSize" Value="{StaticResource ContentFontSize}"/>
@@ -1757,7 +1746,7 @@
         <Setter Property="FontFamily" Value="{StaticResource ContentFontFamily}"/>
         <Setter Property="FontSize" Value="{StaticResource ContentFontSize}"/>
         <Setter Property="TextOptions.TextHintingMode" Value="Animated"/>
-        <Setter Property="Padding" Value="10"/>
+        <Setter Property="Padding" Value="3"/>
         <Setter Property="Margin" Value="0"/>
         <Setter Property="HorizontalContentAlignment" Value="Left"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -1876,9 +1865,9 @@
                                         <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)"
                                                          Storyboard.TargetName="MouseOverRectangle" To="1"
                                                          Duration="0:0:0.1"/>
-                                        <ColorAnimation Storyboard.TargetName="contentControl"
+                                        <!--<ColorAnimation Storyboard.TargetName="contentControl"
                                                         Storyboard.TargetProperty="(Control.Foreground).Color" To="{StaticResource Gray2}"
-                                                        Duration="0"/>
+                                                        Duration="0"/>-->
                                         <DoubleAnimation Storyboard.TargetProperty="(UIElement.Opacity)"
                                                          Storyboard.TargetName="grid" To="1" Duration="0:0:0.1"/>
                                     </Storyboard>
@@ -1962,7 +1951,9 @@
                             <Grid x:Name="grid" Height="14" Width="14" Opacity="0.7">
                                 <Rectangle x:Name="Background" Fill="{TemplateBinding Background}"
                                            Stroke="{TemplateBinding BorderBrush}"
-                                           StrokeThickness="{TemplateBinding BorderThickness}"/>
+                              StrokeThickness="{TemplateBinding BorderThickness}"/>
+                               <!--<Rectangle x:Name="MouseOverRectangle" Stroke="{StaticResource CheckBoxMouseOverBrush}"
+                                           Opacity="0"/>-->
                                 <Rectangle x:Name="MouseOverRectangle" Stroke="{StaticResource CheckBoxMouseOverBrush}"
                                            Opacity="0"/>
                                 <Rectangle x:Name="PressedRectangle" Stroke="{StaticResource BlackBrush}" Opacity="0"/>
@@ -2122,7 +2113,7 @@
                             <Border x:Name="ContentElement" Margin="{TemplateBinding Padding}" Padding="4,0,3,2"
                                     VerticalAlignment="Center"/>
                         </Border>
-                        <TextBlock x:Name="WatermarkElement" Text="{TemplateBinding Watermark}" VerticalAlignment="Center" Margin="5,0" FontStyle="Italic" />
+                      <TextBlock x:Name="WatermarkElement" Text="{TemplateBinding Watermark}" VerticalAlignment="Center" Margin="5,0" FontStyle="Italic" />
                         <Border x:Name="DisabledVisualElement" BorderBrush="{StaticResource ControlsDisabledBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 Background="{StaticResource ControlsDisabledBrush}" IsHitTestVisible="False"
@@ -2134,8 +2125,8 @@
                                 Opacity="0">
                             <Rectangle x:Name="FocusInnerRectangle" StrokeThickness="{TemplateBinding BorderThickness}"
                                        Opacity="0" Stroke="{StaticResource TextBoxMouseOverInnerBorderBrush}"/>
-                        </Border>
-
+                        </Border>                 
+                      
                         <Border x:Name="ValidationErrorElement" BorderBrush="{StaticResource ControlsValidationBrush}"
                                 BorderThickness="1" CornerRadius="1" Visibility="Collapsed">
                             <ToolTipService.ToolTip>
@@ -2992,5 +2983,4 @@
     <Style TargetType="ToolTip" BasedOn="{StaticResource DefaultToolTipStyle}"/>
     <Style TargetType="HeaderedContentControl" BasedOn="{StaticResource DefaultHeaderedContentControlStyle}"/>
     <Style TargetType="Dialog" BasedOn="{StaticResource DefaultDialogStyle}"/>
-    <Style TargetType="HtmlFrame" BasedOn="{StaticResource DefaultHtmlFrame}" />
 </ResourceDictionary>

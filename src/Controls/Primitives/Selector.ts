@@ -106,8 +106,6 @@ module Fayde.Controls.Primitives {
         OnItemsChanged(e: Collections.CollectionChangedEventArgs) {
             super.OnItemsChanged(e);
             var item: any;
-            var tsv = <Fayde.Controls.ScrollViewer>this.$TemplateScrollViewer;
-            if (tsv) tsv.ResetScrollInfo();
             switch (e.Action) {
                 case Collections.CollectionChangedAction.Add:
                     var lbi: ListBoxItem;

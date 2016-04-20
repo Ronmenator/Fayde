@@ -2,7 +2,6 @@
 /// <reference path="ScrollViewer.ts" />
 
 module Fayde.Controls {
-    import Rect = minerva.Rect;
     interface IOutValue {
         Value: any;
     }
@@ -12,7 +11,7 @@ module Fayde.Controls {
         static IsSelectionActiveProperty = Primitives.Selector.IsSelectionActiveProperty;
         ItemContainerStyle: Style;
 
-        constructor() {
+        constructor () {
             super();
             this.DefaultStyleKey = ListBox;
         }
@@ -25,8 +24,8 @@ module Fayde.Controls {
             if (!items.Contains(item))
                 return;
 
-            var ihro = {Value: <Rect>null};
-            var lbiro = {Value: <Rect>null};
+            var ihro = { Value: null };
+            var lbiro = { Value: null };
             var virtualizing = VirtualizingStackPanel.GetIsVirtualizing(this);
             if (this._IsOnCurrentPage(item, ihro, lbiro))
                 return;
@@ -40,12 +39,12 @@ module Fayde.Controls {
                 }
                 var verticalOffset = tsv.VerticalOffset;
                 var verticalDelta = 0;
-                if (Rect.getBottom(ihr) < Rect.getBottom(lbir)) {
-                    verticalDelta = Rect.getBottom(lbir) - Rect.getBottom(ihr);
+                if (ihr.GetBottom() < lbir.GetBottom()) {
+                    verticalDelta = lbir.GetBottom() - ihr.GetBottom();
                     verticalOffset += verticalDelta;
                 }
-                if ((lbir.y - verticalDelta) < ihr.y) {
-                    verticalOffset -= ihr.y - (lbir.y - verticalDelta);
+                if ((lbir.Y - verticalDelta) < ihr.Y) {
+                    verticalOffset -= ihr.Y - (lbir.Y - verticalDelta);
                 }
                 tsv.ScrollToVerticalOffset(verticalOffset);
             } else {
@@ -55,12 +54,12 @@ module Fayde.Controls {
                 }
                 var horizontalOffset = tsv.HorizontalOffset;
                 var horizontalDelta = 0;
-                if (Rect.getRight(ihr) < Rect.getRight(lbir)) {
-                    horizontalDelta = Rect.getRight(lbir) - Rect.getRight(ihr);
+                if (ihr.GetRight() < lbir.GetRight()) {
+                    horizontalDelta = lbir.GetRight() - ihr.GetRight();
                     horizontalOffset += horizontalDelta;
                 }
-                if ((ihr.x - horizontalDelta) < ihr.x) {
-                    horizontalOffset -= ihr.x - (lbir.x - horizontalDelta);
+                if ((ihr.X - horizontalDelta) < ihr.X) {
+                    horizontalOffset -= ihr.X - (lbir.X - horizontalDelta);
                 }
                 tsv.ScrollToHorizontalOffset(horizontalOffset);
             }
@@ -98,15 +97,13 @@ module Fayde.Controls {
             }
             return newFocusedIndex;
         }
-
         private _ScrollInDirection(key: Input.Key) {
             if (this.$TemplateScrollViewer)
                 this.$TemplateScrollViewer.ScrollInDirection(key);
         }
-
         private _IsOnCurrentPage(item: any, itemsHostRectOut?: IOutValue, listBoxItemsRectOut?: IOutValue) {
-            if (!itemsHostRectOut) itemsHostRectOut = {Value: null};
-            if (!listBoxItemsRectOut) listBoxItemsRectOut = {Value: null};
+            if (!itemsHostRectOut) itemsHostRectOut = { Value: null };
+            if (!listBoxItemsRectOut) listBoxItemsRectOut = { Value: null };
 
             var itemsHost: UIElement = <UIElement>VisualTreeHelper.GetChild(VisualTreeHelper.GetChild(this, 0), 0);
 
@@ -155,7 +152,6 @@ module Fayde.Controls {
                 ? ihro.y <= lbiro.y && minerva.Rect.getBottom(ihro) >= minerva.Rect.getBottom(lbiro)
                 : ihro.x <= lbiro.x && minerva.Rect.getRight(ihro) >= minerva.Rect.getRight(lbiro);
         }
-
         private _GetFirstItemOnCurrentPage(startingIndex: number, forward: boolean): number {
             var delta = forward ? 1 : -1;
             var fiocp = -1;
@@ -264,7 +260,6 @@ module Fayde.Controls {
                 args.Handled = true;
             }
         }
-
         private _GetIsVerticalOrientation(): boolean {
             var presenter = this.XamlNode.ItemsPresenter;
             if (!presenter)
@@ -280,7 +275,6 @@ module Fayde.Controls {
         IsItemItsOwnContainer(item: any): boolean {
             return item instanceof ListBoxItem;
         }
-
         GetContainerForItem(): UIElement {
             var item = new ListBoxItem();
             var ics = this.ItemContainerStyle;
@@ -288,7 +282,6 @@ module Fayde.Controls {
                 item.Style = ics;
             return item;
         }
-
         PrepareContainerForItem(element: UIElement, item: any) {
             super.PrepareContainerForItem(element, item);
             var ics = this.ItemContainerStyle;
@@ -301,7 +294,6 @@ module Fayde.Controls {
             super.OnGotFocus(e);
             this.SetValueInternal(ListBox.IsSelectionActiveProperty, true);
         }
-
         OnLostFocus(e: RoutedEventArgs) {
             super.OnLostFocus(e);
             this.SetValueInternal(ListBox.IsSelectionActiveProperty, false);
@@ -310,24 +302,15 @@ module Fayde.Controls {
         NotifyListItemGotFocus(lbi: ListBoxItem) {
             this._FocusedIndex = this.ItemContainersManager.IndexFromContainer(lbi);
         }
-
         NotifyListItemLostFocus(lbi: ListBoxItem) {
             this._FocusedIndex = -1;
-        }
-
-        OnItemsSourceChanged(e: IDependencyPropertyChangedEventArgs) {
-            super.OnItemsSourceChanged(e);
-            var tsv = this.$TemplateScrollViewer;
-            if (tsv) {
-                tsv.ScrollToVerticalOffset(0);
-            }
         }
     }
     Fayde.CoreLibrary.add(ListBox);
     TemplateVisualStates(ListBox,
-        {GroupName: "ValidationStates", Name: "Valid"},
-        {GroupName: "ValidationStates", Name: "InvalidUnfocused"},
-        {GroupName: "ValidationStates", Name: "InvalidFocused"});
+        { GroupName: "ValidationStates", Name: "Valid" },
+        { GroupName: "ValidationStates", Name: "InvalidUnfocused" },
+        { GroupName: "ValidationStates", Name: "InvalidFocused" });
     TemplateParts(ListBox,
-        {Name: "ScrollViewer", Type: ScrollViewer});
+        { Name: "ScrollViewer", Type: ScrollViewer });
 }

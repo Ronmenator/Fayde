@@ -3,7 +3,6 @@
 /// <reference path="../Navigation/INavigate.ts" />
 
 module Fayde.Controls {
-    import RedirectRoute = Fayde.Navigation.RedirectRoute;
     function createErrorDoc(error: any): nullstone.markup.xaml.XamlMarkup {
         var safe = (error || '').toString()
             .replace(/&/g, '&amp;')
@@ -26,7 +25,7 @@ module Fayde.Controls {
         static CurrentSourceProperty = DependencyProperty.RegisterReadOnly("CurrentSource", () => Uri, Frame);
         static SourceProperty = DependencyProperty.Register("Source", () => Uri, Frame, undefined, (d, args) => (<Frame>d).SourcePropertyChanged(args));
         static UriMapperProperty = DependencyProperty.Register("UriMapper", () => Navigation.UriMapper, Frame);
-        static RouteMapperProperty = DependencyProperty.RegisterCore("RouteMapper", () => Navigation.RouteMapper, Frame);
+        static RouteMapperProperty = DependencyProperty.Register("RouteMapper", () => Navigation.RouteMapper, Frame);
         static IsLoadingProperty = DependencyProperty.RegisterReadOnly("IsLoading", () => Boolean, Frame, false, (d: Frame, args) => d.OnIsLoadingChanged(args.OldValue, args.NewValue));
         IsDeepLinked: boolean;
         CurrentSource: Uri;
@@ -102,16 +101,12 @@ module Fayde.Controls {
             var targetUri = new Uri(fragment, nullstone.UriKind.Relative);
             var target: string = undefined;
             if (this.RouteMapper) {
-                var route = this.RouteMapper.MapUri(targetUri);
-                if (route instanceof Navigation.RedirectRoute) {
-                    this.Navigate(route.NewUri);
-                    return;
-                }
-                this._CurrentRoute = route;
+                this._CurrentRoute = this.RouteMapper.MapUri(targetUri);
                 if (!this._CurrentRoute)
                     throw new InvalidOperationException("Route could not be mapped." + targetUri.toString());
                 target = this._CurrentRoute.View.toString();
-            } else if (this.UriMapper) {
+            }
+            else if (this.UriMapper) {
                 var mapped = this.UriMapper.MapUri(targetUri);
                 if (!mapped)
                     throw new InvalidOperationException("Uri could not be mapped." + targetUri.toString());

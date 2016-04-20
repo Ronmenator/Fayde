@@ -17,7 +17,7 @@ module.exports = function (meta) {
             .pipe(ts({
                 target: 'ES5',
                 module: 'amd',
-                outDir: 'testsite/.build/',
+                outDir: 'stress/.build/',
                 pathFilter: {'testsite': ''}
             }))
             .pipe(sourcemaps.write())

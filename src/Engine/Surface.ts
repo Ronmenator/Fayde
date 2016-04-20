@@ -18,8 +18,7 @@ module Fayde {
         init(canvas: HTMLCanvasElement) {
             super.init(canvas);
 
-            if (!this.$$updateZoom())
-                this.$$setScrollbars(false);
+            this.$$updateZoom();
             this.$$stretchCanvas();
             (<any>document.body).onresize = (e) => this.$$handleResize(window.event ? <any>window.event : e);
             window.onresize = (e) => this.$$handleResize(window.event ? <any>window.event : e);
@@ -146,14 +145,13 @@ module Fayde {
             this.resize(Math.round(window.innerWidth * this.$$zoom), Math.round(window.innerHeight * this.$$zoom));
         }
 
-        private $$updateZoom(): boolean {
+        private $$updateZoom() {
             var oldZoom = this.$$zoom;
             var newZoom = minerva.zoom.calc();
             if (oldZoom === newZoom)
-                return false;
+                return;
             this.$$zoom = newZoom;
             this.onZoomChanged(oldZoom, newZoom);
-            return true;
         }
 
         protected onZoomChanged(oldZoom: number, newZoom: number) {

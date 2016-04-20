@@ -40,31 +40,6 @@ declare module Fayde {
     function RegisterEnum(enu: any, uri: string, name: string): void;
     var IType_: nullstone.Interface<{}>;
 }
-declare module Fayde.Clipboard {
-    class BasicClipboard implements IClipboard {
-        CopyText(text: string): void;
-        GetTextContents(callback: (text: string) => void): void;
-    }
-}
-declare module Fayde.Clipboard {
-    function Create(): IClipboard;
-}
-declare module Fayde.Clipboard {
-    interface IClipboard {
-        CopyText(text: string): any;
-        GetTextContents(callback: (text: string) => void): any;
-    }
-    function memoizePlaceholder(key: string): HTMLDivElement;
-}
-declare module Fayde.Clipboard {
-    class NetscapeClipboard implements IClipboard {
-        private $$fn;
-        constructor();
-        CopyText(text: string): void;
-        GetTextContents(callback: (text: string) => void): void;
-        private $$notify;
-    }
-}
 declare module Fayde.Collections {
     enum CollectionChangedAction {
         Add = 1,
@@ -176,6 +151,31 @@ declare module Fayde.Collections {
         Remove(value: T): boolean;
         RemoveAt(index: number): void;
         Clear(): void;
+    }
+}
+declare module Fayde.Clipboard {
+    class BasicClipboard implements IClipboard {
+        CopyText(text: string): void;
+        GetTextContents(callback: (text: string) => void): void;
+    }
+}
+declare module Fayde.Clipboard {
+    function Create(): IClipboard;
+}
+declare module Fayde.Clipboard {
+    interface IClipboard {
+        CopyText(text: string): any;
+        GetTextContents(callback: (text: string) => void): any;
+    }
+    function memoizePlaceholder(key: string): HTMLDivElement;
+}
+declare module Fayde.Clipboard {
+    class NetscapeClipboard implements IClipboard {
+        private $$fn;
+        constructor();
+        CopyText(text: string): void;
+        GetTextContents(callback: (text: string) => void): void;
+        private $$notify;
     }
 }
 declare module Fayde {
@@ -1798,33 +1798,6 @@ declare module Fayde.Controls {
         OnHeaderTemplateChanged(oldHeaderTemplate: DataTemplate, newHeaderTemplate: DataTemplate): void;
     }
 }
-declare module Fayde {
-    class RoutedEventArgs implements nullstone.IEventArgs {
-        Handled: boolean;
-        Source: any;
-        OriginalSource: any;
-    }
-}
-declare module Fayde {
-    class SizeChangedEventArgs extends RoutedEventArgs {
-        PreviousSize: minerva.Size;
-        NewSize: minerva.Size;
-        constructor(previousSize: minerva.Size, newSize: minerva.Size);
-    }
-}
-declare module Fayde.Controls {
-    class HtmlFrame extends Fayde.Controls.Control {
-        protected $element: HTMLIFrameElement;
-        static SourceProperty: DependencyProperty;
-        Source: Uri;
-        constructor();
-        private _HandleUnload(sender, e);
-        private _HandleSizeChanged(sender, e);
-        private _GetLeftTop();
-        private SourcePropertyChanged(args);
-        createElement(): HTMLIFrameElement;
-    }
-}
 declare module Fayde.Controls {
     class HyperlinkButton extends Primitives.ButtonBase {
         static NavigateUriProperty: DependencyProperty;
@@ -1990,6 +1963,13 @@ declare module Fayde.Controls {
         OnVideoChanged(source: Media.Videos.VideoSourceBase): void;
         Play(): void;
         Pause(): void;
+    }
+}
+declare module Fayde {
+    class RoutedEventArgs implements nullstone.IEventArgs {
+        Handled: boolean;
+        Source: any;
+        OriginalSource: any;
     }
 }
 declare module Fayde.Input {
@@ -2596,6 +2576,13 @@ declare module Fayde {
         ConvertedValue: any;
         Seal(): void;
         static Compare(setter1: Setter, setter2: Setter): number;
+    }
+}
+declare module Fayde {
+    class SizeChangedEventArgs extends RoutedEventArgs {
+        PreviousSize: minerva.Size;
+        NewSize: minerva.Size;
+        constructor(previousSize: minerva.Size, newSize: minerva.Size);
     }
 }
 declare module Fayde {
@@ -5343,6 +5330,39 @@ declare module Fayde.Markup.Internal {
     }
     function createResourcesActor(cur: IActiveObject, resources: ResourceDictionary[]): IResourcesActor;
 }
+declare module Fayde.Media.Effects {
+    class Effect extends DependencyObject implements minerva.IEffect {
+        static EffectMappingProperty: DependencyProperty;
+        EffectMapping: GeneralTransform;
+        PreRender(ctx: minerva.core.render.RenderContext): void;
+        PostRender(ctx: minerva.core.render.RenderContext): void;
+        GetPadding(thickness: Thickness): boolean;
+    }
+}
+declare module Fayde.Media.Effects {
+    class BlurEffect extends Effect {
+        static RadiusProperty: DependencyProperty;
+        Radius: number;
+    }
+}
+declare module Fayde.Media.Effects {
+    class DropShadowEffect extends Effect {
+        static MAX_BLUR_RADIUS: number;
+        static MAX_SHADOW_DEPTH: number;
+        static BlurRadiusProperty: DependencyProperty;
+        static ColorProperty: DependencyProperty;
+        static DirectionProperty: DependencyProperty;
+        static OpacityProperty: DependencyProperty;
+        static ShadowDepthProperty: DependencyProperty;
+        BlurRadius: number;
+        Color: Color;
+        Direction: number;
+        Opacity: number;
+        ShadowDepth: number;
+        GetPadding(thickness: Thickness): boolean;
+        PreRender(ctx: minerva.core.render.RenderContext): void;
+    }
+}
 declare module Fayde.Media.Animation {
     enum EasingMode {
         EaseOut = 0,
@@ -5810,39 +5830,6 @@ declare module Fayde.Media.Animation {
         Stop(): void;
         UpdateInternal(clockData: IClockData): void;
         GetNaturalDurationCore(): Duration;
-    }
-}
-declare module Fayde.Media.Effects {
-    class Effect extends DependencyObject implements minerva.IEffect {
-        static EffectMappingProperty: DependencyProperty;
-        EffectMapping: GeneralTransform;
-        PreRender(ctx: minerva.core.render.RenderContext): void;
-        PostRender(ctx: minerva.core.render.RenderContext): void;
-        GetPadding(thickness: Thickness): boolean;
-    }
-}
-declare module Fayde.Media.Effects {
-    class BlurEffect extends Effect {
-        static RadiusProperty: DependencyProperty;
-        Radius: number;
-    }
-}
-declare module Fayde.Media.Effects {
-    class DropShadowEffect extends Effect {
-        static MAX_BLUR_RADIUS: number;
-        static MAX_SHADOW_DEPTH: number;
-        static BlurRadiusProperty: DependencyProperty;
-        static ColorProperty: DependencyProperty;
-        static DirectionProperty: DependencyProperty;
-        static OpacityProperty: DependencyProperty;
-        static ShadowDepthProperty: DependencyProperty;
-        BlurRadius: number;
-        Color: Color;
-        Direction: number;
-        Opacity: number;
-        ShadowDepth: number;
-        GetPadding(thickness: Thickness): boolean;
-        PreRender(ctx: minerva.core.render.RenderContext): void;
     }
 }
 declare module Fayde.Media.Imaging {
