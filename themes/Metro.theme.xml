@@ -2956,7 +2956,25 @@
             </Setter.Value>
         </Setter>
     </Style>
-
+    <!--HtmlFrame Style-->
+    <Style TargetType="HtmlFrame" x:Key="DefaultHtmlFrameStyle">
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Background" Value="White" />
+        <Setter Property="BorderBrush" Value="DarkGray" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="HtmlFrame">
+                    <Border BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Background="{TemplateBinding Background}"
+                            x:Name="PART_Border">
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <!-- Implicit Styles -->
     <!-- When defining your own styles, set "based on" the same way to keep control theming -->
     <Style TargetType="ContentControl">
@@ -2983,4 +3001,5 @@
     <Style TargetType="ToolTip" BasedOn="{StaticResource DefaultToolTipStyle}"/>
     <Style TargetType="HeaderedContentControl" BasedOn="{StaticResource DefaultHeaderedContentControlStyle}"/>
     <Style TargetType="Dialog" BasedOn="{StaticResource DefaultDialogStyle}"/>
+    <Style TargetType="HtmlFrame" BasedOn="{StaticResource DefaultHtmlFrameStyle}"/>
 </ResourceDictionary>

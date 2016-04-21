@@ -40,6 +40,31 @@ declare module Fayde {
     function RegisterEnum(enu: any, uri: string, name: string): void;
     var IType_: nullstone.Interface<{}>;
 }
+declare module Fayde.Clipboard {
+    class BasicClipboard implements IClipboard {
+        CopyText(text: string): void;
+        GetTextContents(callback: (text: string) => void): void;
+    }
+}
+declare module Fayde.Clipboard {
+    function Create(): IClipboard;
+}
+declare module Fayde.Clipboard {
+    interface IClipboard {
+        CopyText(text: string): any;
+        GetTextContents(callback: (text: string) => void): any;
+    }
+    function memoizePlaceholder(key: string): HTMLDivElement;
+}
+declare module Fayde.Clipboard {
+    class NetscapeClipboard implements IClipboard {
+        private $$fn;
+        constructor();
+        CopyText(text: string): void;
+        GetTextContents(callback: (text: string) => void): void;
+        private $$notify;
+    }
+}
 declare module Fayde.Collections {
     enum CollectionChangedAction {
         Add = 1,
@@ -151,31 +176,6 @@ declare module Fayde.Collections {
         Remove(value: T): boolean;
         RemoveAt(index: number): void;
         Clear(): void;
-    }
-}
-declare module Fayde.Clipboard {
-    class BasicClipboard implements IClipboard {
-        CopyText(text: string): void;
-        GetTextContents(callback: (text: string) => void): void;
-    }
-}
-declare module Fayde.Clipboard {
-    function Create(): IClipboard;
-}
-declare module Fayde.Clipboard {
-    interface IClipboard {
-        CopyText(text: string): any;
-        GetTextContents(callback: (text: string) => void): any;
-    }
-    function memoizePlaceholder(key: string): HTMLDivElement;
-}
-declare module Fayde.Clipboard {
-    class NetscapeClipboard implements IClipboard {
-        private $$fn;
-        constructor();
-        CopyText(text: string): void;
-        GetTextContents(callback: (text: string) => void): void;
-        private $$notify;
     }
 }
 declare module Fayde {
@@ -487,14 +487,6 @@ declare module Fayde {
     enum LineStackingStrategy {
         MaxHeight = 0,
         BlockLineHeight = 1,
-    }
-    enum DeviceOrientation {
-        Portrait = 0,
-        Landscape = 1,
-    }
-    enum DeviceType {
-        PC = 0,
-        Phone = 1,
     }
 }
 declare module Fayde {
@@ -1518,7 +1510,6 @@ declare module Fayde.Controls {
         constructor();
         private _ScrollInfo;
         ScrollInfo: Primitives.IScrollInfo;
-        ResetScrollInfo(): void;
         InvalidateScrollInfo(): void;
         private _UpdateScrollBarVisibility();
         private _UpdateScrollBar(orientation, value);
@@ -1558,22 +1549,17 @@ declare module Fayde.Controls {
         static ItemContainerStyleProperty: DependencyProperty;
         static MaxDropDownHeightProperty: DependencyProperty;
         static IsSelectionActiveProperty: DependencyProperty;
-        static WatermarkProperty: DependencyProperty;
         IsDropDownOpen: boolean;
         ItemContainerStyle: Style;
         MaxDropDownHeight: number;
-        Watermark: String;
         private $ContentPresenter;
         private $Popup;
         private $DropDownToggle;
         private $DisplayedItem;
         private $SelectionBoxItem;
         private $SelectionBoxItemTemplate;
-        private $WatermarkElement;
         private _NullSelFallback;
         private _FocusedIndex;
-        private _FirstOpen;
-        private _RowHeight;
         constructor();
         private _IsDropDownOpenChanged(args);
         private _MaxDropDownHeightChanged(args);
@@ -1589,7 +1575,6 @@ declare module Fayde.Controls {
         OnMouseEnter(e: Input.MouseEventArgs): void;
         OnMouseLeave(e: Input.MouseEventArgs): void;
         OnKeyDown(e: Input.KeyEventArgs): void;
-        private _CheckWatermarkVisibility();
         OnGotFocus(e: RoutedEventArgs): void;
         OnLostFocus(e: RoutedEventArgs): void;
         private _OnChildKeyDown(sender, e);
@@ -1666,44 +1651,10 @@ declare module Fayde.Controls {
     }
 }
 declare module Fayde.Controls {
-    class PageState extends DependencyObject {
-        private _IsSealed;
-        static VisualStateNameProperty: DependencyProperty;
-        static DeviceProperty: DependencyProperty;
-        static MinXProperty: DependencyProperty;
-        static MinYProperty: DependencyProperty;
-        static MaxXProperty: DependencyProperty;
-        static MaxYProperty: DependencyProperty;
-        VisualStateName: string;
-        Device: DeviceType;
-        MinX: number;
-        MinY: number;
-        MaxX: number;
-        MaxY: number;
-        Seal(): void;
-        static Compare(state1: PageState, state2: PageState): number;
-    }
-    class PageStateCollection extends XamlObjectCollection<PageState> {
-        private _IsSealed;
-        XamlNode: XamlNode;
-        Seal(): void;
-        AddingToCollection(value: PageState, error: BError): boolean;
-        private _ValidatePageState(state, error);
-    }
     class Page extends UserControl {
         static TitleProperty: DependencyProperty;
-        static StatesProperty: ImmutableDependencyProperty<PageStateCollection>;
-        States: PageStateCollection;
         Title: string;
-        Device: DeviceType;
-        DeviceOrientation: DeviceOrientation;
         constructor();
-        private _initializeOrientation();
-        private _initializeDeviceType();
-        private _initializeSizeChanges();
-        private _OrientationChanged(ev);
-        private _UpdateState(sender, e);
-        private _goToState(state);
         static GetAsync(initiator: DependencyObject, url: string): Promise<Page>;
     }
 }
@@ -1796,6 +1747,35 @@ declare module Fayde.Controls {
         constructor();
         OnHeaderChanged(oldHeader: any, newHeader: any): void;
         OnHeaderTemplateChanged(oldHeaderTemplate: DataTemplate, newHeaderTemplate: DataTemplate): void;
+    }
+}
+declare module Fayde {
+    class RoutedEventArgs implements nullstone.IEventArgs {
+        Handled: boolean;
+        Source: any;
+        OriginalSource: any;
+    }
+}
+declare module Fayde {
+    class SizeChangedEventArgs extends RoutedEventArgs {
+        PreviousSize: minerva.Size;
+        NewSize: minerva.Size;
+        constructor(previousSize: minerva.Size, newSize: minerva.Size);
+    }
+}
+declare module Fayde.Controls {
+    class HtmlFrame extends Fayde.Controls.Control {
+        protected $element: HTMLIFrameElement;
+        static SourceProperty: DependencyProperty;
+        Source: Uri;
+        private _Border;
+        constructor();
+        OnApplyTemplate(): void;
+        private _HandleUnload(sender, e);
+        private _HandleSizeChanged(sender, e);
+        private _GetLeftTop();
+        private SourcePropertyChanged(args);
+        createElement(): HTMLIFrameElement;
     }
 }
 declare module Fayde.Controls {
@@ -1939,7 +1919,6 @@ declare module Fayde.Controls {
         OnLostFocus(e: RoutedEventArgs): void;
         NotifyListItemGotFocus(lbi: ListBoxItem): void;
         NotifyListItemLostFocus(lbi: ListBoxItem): void;
-        OnItemsSourceChanged(e: IDependencyPropertyChangedEventArgs): void;
     }
 }
 declare module Fayde.Controls {
@@ -1963,13 +1942,6 @@ declare module Fayde.Controls {
         OnVideoChanged(source: Media.Videos.VideoSourceBase): void;
         Play(): void;
         Pause(): void;
-    }
-}
-declare module Fayde {
-    class RoutedEventArgs implements nullstone.IEventArgs {
-        Handled: boolean;
-        Source: any;
-        OriginalSource: any;
     }
 }
 declare module Fayde.Input {
@@ -2078,7 +2050,7 @@ declare module Fayde.Controls {
         static SelectionStartProperty: DependencyProperty;
         static BaselineOffsetProperty: DependencyProperty;
         static MaxLengthProperty: DependencyProperty;
-        static WatermarkProperty: DependencyProperty;
+        static SelectionOnFocusProperty: DependencyProperty;
         CaretBrush: Media.Brush;
         SelectionForeground: Media.Brush;
         SelectionBackground: Media.Brush;
@@ -2087,7 +2059,6 @@ declare module Fayde.Controls {
         BaselineOffset: number;
         MaxLength: number;
         SelectionOnFocus: SelectionOnFocus;
-        Watermark: String;
         private _Selecting;
         private _Captured;
         IsReadOnly: boolean;
@@ -2097,7 +2068,6 @@ declare module Fayde.Controls {
         $Advancer: Internal.ICursorAdvancer;
         $View: Internal.TextBoxView;
         $Clipboard: Clipboard.IClipboard;
-        $WatermarkElement: FrameworkElement;
         constructor(eventsMask: Text.EmitChangedType);
         private _SyncFont();
         CreateView(): Internal.TextBoxView;
@@ -2114,7 +2084,6 @@ declare module Fayde.Controls {
         OnTouchMove(e: Input.TouchEventArgs): void;
         OnKeyDown(args: Input.KeyEventArgs): void;
         PostOnKeyDown(args: Input.KeyEventArgs): void;
-        _CheckWatermarkVisibility(): void;
         private _KeyDownBackSpace(modifiers);
         private _KeyDownDelete(modifiers);
         private _KeyDownPageDown(modifiers);
@@ -2579,13 +2548,6 @@ declare module Fayde {
     }
 }
 declare module Fayde {
-    class SizeChangedEventArgs extends RoutedEventArgs {
-        PreviousSize: minerva.Size;
-        NewSize: minerva.Size;
-        constructor(previousSize: minerva.Size, newSize: minerva.Size);
-    }
-}
-declare module Fayde {
     class Style extends DependencyObject {
         private _IsSealed;
         static SettersProperty: ImmutableDependencyProperty<SetterCollection>;
@@ -2999,8 +2961,7 @@ declare class InvalidOperationException extends Exception {
     constructor(message: string);
 }
 declare class XamlParseException extends Exception {
-    Data: any;
-    constructor(message: string, data?: any);
+    constructor(message: string);
 }
 declare class XamlMarkupParseException extends Exception {
     constructor(message: string);
@@ -3753,7 +3714,6 @@ declare module Fayde.Media {
         CreatePad(ctx: CanvasRenderingContext2D, bounds: minerva.Rect): void;
         CreateRepeat(ctx: CanvasRenderingContext2D, bounds: minerva.Rect): void;
         CreateReflect(ctx: CanvasRenderingContext2D, bounds: minerva.Rect): void;
-        AddColorStop(grd: any, offset: number, color: string): void;
     }
 }
 declare module Fayde.Media {
@@ -4220,11 +4180,8 @@ declare module Fayde.Navigation {
     }
 }
 declare module Fayde.MVVM {
-    interface IRedirector {
-        (newUri: string | Uri): any;
-    }
     interface IViewModelProvider {
-        ResolveViewModel(route: Fayde.Navigation.Route, redirect?: IRedirector): any;
+        ResolveViewModel(route: Fayde.Navigation.Route): any;
     }
     var IViewModelProvider_: nullstone.Interface<IViewModelProvider>;
 }
@@ -4918,9 +4875,7 @@ declare module Fayde.Controls.Internal {
 declare module Fayde.Controls.Internal {
     class TextBoxContentProxy {
         private $$element;
-        private $$scrollElement;
         setElement(fe: FrameworkElement, view: TextBoxView): void;
-        setScrollElement(fe: FrameworkElement): void;
         setHorizontalScrollBar(sbvis: ScrollBarVisibility): void;
         setVerticalScrollBar(sbvis: ScrollBarVisibility): void;
     }
@@ -5329,39 +5284,6 @@ declare module Fayde.Markup.Internal {
         get(): ResourceDictionary[];
     }
     function createResourcesActor(cur: IActiveObject, resources: ResourceDictionary[]): IResourcesActor;
-}
-declare module Fayde.Media.Effects {
-    class Effect extends DependencyObject implements minerva.IEffect {
-        static EffectMappingProperty: DependencyProperty;
-        EffectMapping: GeneralTransform;
-        PreRender(ctx: minerva.core.render.RenderContext): void;
-        PostRender(ctx: minerva.core.render.RenderContext): void;
-        GetPadding(thickness: Thickness): boolean;
-    }
-}
-declare module Fayde.Media.Effects {
-    class BlurEffect extends Effect {
-        static RadiusProperty: DependencyProperty;
-        Radius: number;
-    }
-}
-declare module Fayde.Media.Effects {
-    class DropShadowEffect extends Effect {
-        static MAX_BLUR_RADIUS: number;
-        static MAX_SHADOW_DEPTH: number;
-        static BlurRadiusProperty: DependencyProperty;
-        static ColorProperty: DependencyProperty;
-        static DirectionProperty: DependencyProperty;
-        static OpacityProperty: DependencyProperty;
-        static ShadowDepthProperty: DependencyProperty;
-        BlurRadius: number;
-        Color: Color;
-        Direction: number;
-        Opacity: number;
-        ShadowDepth: number;
-        GetPadding(thickness: Thickness): boolean;
-        PreRender(ctx: minerva.core.render.RenderContext): void;
-    }
 }
 declare module Fayde.Media.Animation {
     enum EasingMode {
@@ -5830,6 +5752,39 @@ declare module Fayde.Media.Animation {
         Stop(): void;
         UpdateInternal(clockData: IClockData): void;
         GetNaturalDurationCore(): Duration;
+    }
+}
+declare module Fayde.Media.Effects {
+    class Effect extends DependencyObject implements minerva.IEffect {
+        static EffectMappingProperty: DependencyProperty;
+        EffectMapping: GeneralTransform;
+        PreRender(ctx: minerva.core.render.RenderContext): void;
+        PostRender(ctx: minerva.core.render.RenderContext): void;
+        GetPadding(thickness: Thickness): boolean;
+    }
+}
+declare module Fayde.Media.Effects {
+    class BlurEffect extends Effect {
+        static RadiusProperty: DependencyProperty;
+        Radius: number;
+    }
+}
+declare module Fayde.Media.Effects {
+    class DropShadowEffect extends Effect {
+        static MAX_BLUR_RADIUS: number;
+        static MAX_SHADOW_DEPTH: number;
+        static BlurRadiusProperty: DependencyProperty;
+        static ColorProperty: DependencyProperty;
+        static DirectionProperty: DependencyProperty;
+        static OpacityProperty: DependencyProperty;
+        static ShadowDepthProperty: DependencyProperty;
+        BlurRadius: number;
+        Color: Color;
+        Direction: number;
+        Opacity: number;
+        ShadowDepth: number;
+        GetPadding(thickness: Thickness): boolean;
+        PreRender(ctx: minerva.core.render.RenderContext): void;
     }
 }
 declare module Fayde.Media.Imaging {
