@@ -155,12 +155,7 @@ module Fayde.Controls {
             this.CloseAutomaticToolTip();
         }
         private OnOwnerMouseEnterInternal(sender: any, source: any) {
-            if (this._LastEnterSource && this._LastEnterSource === source)
-                return;
-
             if (this._CurrentTooltip) {
-                if (sender.GetValue(AssignedToolTipProperty) === this._CurrentTooltip)
-                    return;
                 this.CloseAutomaticToolTip();
             }
 

@@ -121,6 +121,7 @@ module Fayde.Controls {
         DPReaction<string>(TextBox.TextProperty, (tb: TextBox, ov, nv) => {
             tb.$Proxy.setText(nv);
             tb.$View.setText(tb.DisplayText);
+            tb._CheckWatermarkVisibility();
         }, false);
     }
 }

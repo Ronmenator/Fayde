@@ -18,3 +18,4 @@ test/runner.js.map
 testsite/lib/
 testsite/.build/
 stress/.build/
+themes/Metro.theme.old.xml
