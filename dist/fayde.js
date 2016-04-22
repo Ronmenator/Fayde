@@ -5971,6 +5971,8 @@ var Fayde;
                 this.$SelectionBoxItem = null;
                 this.$SelectionBoxItemTemplate = null;
                 this._FocusedIndex = -1;
+                this._FirstOpen = false;
+                this._RowHeight = 0;
                 this.DefaultStyleKey = ComboBox;
             }
             ComboBox.prototype._IsDropDownOpenChanged = function (args) {
@@ -5982,9 +5984,18 @@ var Fayde;
                 if (open) {
                     this._FocusedIndex = this.Items.Count > 0 ? Math.max(this.SelectedIndex, 0) : -1;
                     if (this._FocusedIndex > -1) {
+                        var tsv = this.$TemplateScrollViewer;
                         var focusedItem = this.ItemContainersManager.ContainerFromIndex(this._FocusedIndex);
-                        if (focusedItem instanceof Controls.ComboBoxItem)
-                            focusedItem.Focus();
+                        if (focusedItem instanceof Controls.ComboBoxItem) {
+                            var item = focusedItem;
+                            item.Focus();
+                            if (item.ActualHeight <= 0)
+                                this._FirstOpen = true;
+                            if (tsv)
+                                tsv.ScrollToVerticalOffset(this._FocusedIndex * item.ActualHeight);
+                        }
+                        else if (tsv)
+                            tsv.ScrollToVerticalOffset(this._FocusedIndex * 25);
                     }
                     this.LayoutUpdated.on(this._UpdatePopupSizeAndPosition, this);
                     this.DropDownOpened.raise(this, null);
@@ -5997,6 +6008,7 @@ var Fayde;
                 var selectedItem = this.SelectedItem;
                 this._UpdateDisplayedItem(open && selectedItem instanceof Fayde.UIElement ? null : selectedItem);
                 this.UpdateVisualState(true);
+                this._CheckWatermarkVisibility();
             };
             ComboBox.prototype._MaxDropDownHeightChanged = function (args) {
                 this._UpdatePopupMaxHeight(args.NewValue);
@@ -6012,6 +6024,7 @@ var Fayde;
                 this.$ContentPresenter = this._GetChildOfType("ContentPresenter", Controls.ContentPresenter);
                 this.$Popup = this._GetChildOfType("Popup", Controls.Primitives.Popup);
                 this.$DropDownToggle = this._GetChildOfType("DropDownToggle", Controls.Primitives.ToggleButton);
+                this.$WatermarkElement = this.GetTemplateChild("WatermarkElement", Fayde.FrameworkElement);
                 if (this.$ContentPresenter != null)
                     this._NullSelFallback = this.$ContentPresenter.Content;
                 if (this.$Popup != null) {
@@ -6100,8 +6113,6 @@ var Fayde;
                         this.IsDropDownOpen = false;
                         break;
                     case Fayde.Input.Key.Enter:
-                        this.IsDropDownOpen = false;
-                        break;
                     case Fayde.Input.Key.Space:
                         if (this.IsDropDownOpen && this._FocusedIndex !== this.SelectedIndex) {
                             this.SelectedIndex = this._FocusedIndex;
@@ -6140,6 +6151,10 @@ var Fayde;
                         break;
                 }
             };
+            ComboBox.prototype._CheckWatermarkVisibility = function () {
+                if (this.Watermark.length > 0 && this.$WatermarkElement)
+                    this.$WatermarkElement.Visibility = this.$SelectionBoxItem != null ? Fayde.Visibility.Collapsed : Fayde.Visibility.Visible;
+            };
             ComboBox.prototype.OnGotFocus = function (e) {
                 _super.prototype.OnGotFocus.call(this, e);
                 this.UpdateVisualState(true);
@@ -6155,6 +6170,7 @@ var Fayde;
             ComboBox.prototype.OnSelectionChanged = function (e) {
                 if (!this.IsDropDownOpen)
                     this._UpdateDisplayedItem(this.SelectedItem);
+                this._CheckWatermarkVisibility();
             };
             ComboBox.prototype._OnToggleChecked = function (sender, e) { this.IsDropDownOpen = true; };
             ComboBox.prototype._OnToggleUnchecked = function (sender, e) { this.IsDropDownOpen = false; };
@@ -6210,6 +6226,7 @@ var Fayde;
                 }
                 this.$ContentPresenter.Content = this.$SelectionBoxItem;
                 this.$ContentPresenter.ContentTemplate = this.$SelectionBoxItemTemplate;
+                this._CheckWatermarkVisibility();
             };
             ComboBox.prototype._UpdatePopupSizeAndPosition = function (sender, e) {
                 var popup = this.$Popup;
@@ -6261,6 +6278,19 @@ var Fayde;
                 popup.HorizontalOffset = finalOffset.x;
                 popup.VerticalOffset = finalOffset.y;
                 this._UpdatePopupMaxHeight(this.MaxDropDownHeight);
+                if (this._FirstOpen) {
+                    this._FirstOpen = false;
+                    this.$TemplateScrollViewer.InvalidateScrollInfo();
+                    var icm = this.ItemContainersManager;
+                    var selectedIndex = this.SelectedIndex;
+                    var temp = icm.ContainerFromIndex(selectedIndex);
+                    if (temp instanceof Controls.ComboBoxItem) {
+                        var tmp = temp;
+                        this.$TemplateScrollViewer.ScrollToVerticalOffset(this._FocusedIndex * tmp.ActualHeight);
+                    }
+                    else
+                        this.$TemplateScrollViewer.ScrollToVerticalOffset(this._FocusedIndex * 25);
+                }
             };
             ComboBox.prototype._UpdatePopupMaxHeight = function (height) {
                 var child;
@@ -6277,11 +6307,12 @@ var Fayde;
             ComboBox.ItemContainerStyleProperty = DependencyProperty.Register("ItemContainerStyle", function () { return Fayde.Style; }, ComboBox, undefined, function (d, args) { return d.OnItemContainerStyleChanged(args); });
             ComboBox.MaxDropDownHeightProperty = DependencyProperty.Register("MaxDropDownHeight", function () { return Number; }, ComboBox, Number.POSITIVE_INFINITY, function (d, args) { return d._MaxDropDownHeightChanged(args); });
             ComboBox.IsSelectionActiveProperty = Controls.Primitives.Selector.IsSelectionActiveProperty;
+            ComboBox.WatermarkProperty = DependencyProperty.Register("Watermark", function () { return String; }, ComboBox, "");
             return ComboBox;
         })(Controls.Primitives.Selector);
         Controls.ComboBox = ComboBox;
         Fayde.CoreLibrary.add(ComboBox);
-        Controls.TemplateParts(ComboBox, { Name: "ContentPresenter", Type: Controls.ContentPresenter }, { Name: "Popup", Type: Controls.Primitives.Popup }, { Name: "ContentPresenterBorder", Type: Fayde.FrameworkElement }, { Name: "DropDownToggle", Type: Controls.Primitives.ToggleButton }, { Name: "ScrollViewer", Type: Controls.ScrollViewer });
+        Controls.TemplateParts(ComboBox, { Name: "ContentPresenter", Type: Controls.ContentPresenter }, { Name: "Popup", Type: Controls.Primitives.Popup }, { Name: "ContentPresenterBorder", Type: Fayde.FrameworkElement }, { Name: "DropDownToggle", Type: Controls.Primitives.ToggleButton }, { Name: "ScrollViewer", Type: Controls.ScrollViewer }, { Name: "WatermarkElement", Type: Fayde.FrameworkElement });
         Controls.TemplateVisualStates(ComboBox, { GroupName: "CommonStates", Name: "Normal" }, { GroupName: "CommonStates", Name: "MouseOver" }, { GroupName: "CommonStates", Name: "Disabled" }, { GroupName: "FocusStates", Name: "Unfocused" }, { GroupName: "FocusStates", Name: "Focused" }, { GroupName: "FocusStates", Name: "FocusedDropDown" }, { GroupName: "ValidationStates", Name: "Valid" }, { GroupName: "ValidationStates", Name: "InvalidUnfocused" }, { GroupName: "ValidationStates", Name: "InvalidFocused" });
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
 })(Fayde || (Fayde = {}));
@@ -7492,6 +7523,7 @@ var Fayde;
 (function (Fayde) {
     var Controls;
     (function (Controls) {
+        var Rect = minerva.Rect;
         var ListBox = (function (_super) {
             __extends(ListBox, _super);
             function ListBox() {
@@ -7520,12 +7552,12 @@ var Fayde;
                     }
                     var verticalOffset = tsv.VerticalOffset;
                     var verticalDelta = 0;
-                    if (ihr.GetBottom() < lbir.GetBottom()) {
-                        verticalDelta = lbir.GetBottom() - ihr.GetBottom();
+                    if (Rect.getBottom(ihr) < Rect.getBottom(lbir)) {
+                        verticalDelta = Rect.getBottom(lbir) - Rect.getBottom(ihr);
                         verticalOffset += verticalDelta;
                     }
-                    if ((lbir.Y - verticalDelta) < ihr.Y) {
-                        verticalOffset -= ihr.Y - (lbir.Y - verticalDelta);
+                    if ((lbir.y - verticalDelta) < ihr.y) {
+                        verticalOffset -= ihr.y - (lbir.y - verticalDelta);
                     }
                     tsv.ScrollToVerticalOffset(verticalOffset);
                 }
@@ -7536,12 +7568,12 @@ var Fayde;
                     }
                     var horizontalOffset = tsv.HorizontalOffset;
                     var horizontalDelta = 0;
-                    if (ihr.GetRight() < lbir.GetRight()) {
-                        horizontalDelta = lbir.GetRight() - ihr.GetRight();
+                    if (Rect.getRight(ihr) < Rect.getRight(lbir)) {
+                        horizontalDelta = Rect.getRight(lbir) - Rect.getRight(ihr);
                         horizontalOffset += horizontalDelta;
                     }
-                    if ((ihr.X - horizontalDelta) < ihr.X) {
-                        horizontalOffset -= ihr.X - (lbir.X - horizontalDelta);
+                    if ((ihr.x - horizontalDelta) < ihr.x) {
+                        horizontalOffset -= ihr.x - (lbir.x - horizontalDelta);
                     }
                     tsv.ScrollToHorizontalOffset(horizontalOffset);
                 }
@@ -7778,6 +7810,13 @@ var Fayde;
             };
             ListBox.prototype.NotifyListItemLostFocus = function (lbi) {
                 this._FocusedIndex = -1;
+            };
+            ListBox.prototype.OnItemsSourceChanged = function (e) {
+                _super.prototype.OnItemsSourceChanged.call(this, e);
+                var tsv = this.$TemplateScrollViewer;
+                if (tsv) {
+                    tsv.ScrollToVerticalOffset(0);
+                }
             };
             ListBox.ItemContainerStyleProperty = DependencyProperty.Register("ItemContainerStyle", function () { return Fayde.Style; }, ListBox, undefined, function (d, args) { return d.OnItemContainerStyleChanged(args); });
             ListBox.IsSelectionActiveProperty = Controls.Primitives.Selector.IsSelectionActiveProperty;
@@ -8019,6 +8058,7 @@ var Fayde;
                 view.MouseLeftButtonUp.on(function (s, e) { return _this.OnMouseLeftButtonUp(e); }, this);
                 this.$Proxy = new Fayde.Text.Proxy(eventsMask, MAX_UNDO_COUNT);
                 this._SyncFont();
+                this._CheckWatermarkVisibility();
             }
             TextBoxBase.prototype._SyncFont = function () {
                 var _this = this;
@@ -8074,15 +8114,20 @@ var Fayde;
             TextBoxBase.prototype.OnApplyTemplate = function () {
                 _super.prototype.OnApplyTemplate.call(this);
                 this.$ContentProxy.setElement(this.GetTemplateChild("ContentElement", Fayde.FrameworkElement), this.$View);
+                this.$WatermarkElement = this.GetTemplateChild("WatermarkElement", Fayde.FrameworkElement);
+                this.$ContentProxy.setScrollElement(this.GetTemplateChild("ScrollElement", Fayde.FrameworkElement));
+                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnLostFocus = function (e) {
                 _super.prototype.OnLostFocus.call(this, e);
                 this.$View.setIsFocused(false);
+                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnGotFocus = function (e) {
                 _super.prototype.OnGotFocus.call(this, e);
                 this.$View.setIsFocused(true);
                 this.selectBasedonSelectionMode();
+                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnMouseLeftButtonDown = function (e) {
                 if (e.Handled)
@@ -8093,6 +8138,7 @@ var Fayde;
                 this._Selecting = true;
                 var cursor = this.$View.GetCursorFromPoint(e.GetPosition(this.$View));
                 this.$Proxy.beginSelect(cursor);
+                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnMouseLeftButtonUp = function (e) {
                 if (e.Handled)
@@ -8102,6 +8148,7 @@ var Fayde;
                 e.Handled = true;
                 this._Selecting = false;
                 this._Captured = false;
+                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnMouseMove = function (e) {
                 if (!this._Selecting)
@@ -8121,6 +8168,7 @@ var Fayde;
                 var pos = e.Device.GetTouchPoint(this.$View).Position;
                 var cursor = this.$View.GetCursorFromPoint(pos);
                 this.$Proxy.beginSelect(cursor);
+                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnTouchUp = function (e) {
                 _super.prototype.OnTouchUp.call(this, e);
@@ -8130,6 +8178,7 @@ var Fayde;
                     e.Device.ReleaseCapture(this);
                 e.Handled = true;
                 this._Selecting = false;
+                this._CheckWatermarkVisibility();
             };
             TextBoxBase.prototype.OnTouchMove = function (e) {
                 _super.prototype.OnTouchMove.call(this, e);
@@ -8203,6 +8252,8 @@ var Fayde;
                         if (args.Modifiers.Ctrl) {
                             switch (args.Key) {
                                 case Key.A:
+                                    if (isReadOnly)
+                                        break;
                                     handled = true;
                                     proxy.selectAll();
                                     break;
@@ -8221,6 +8272,7 @@ var Fayde;
                                     if (isReadOnly)
                                         break;
                                     this.$Clipboard.GetTextContents(function (text) { return proxy.paste(text); });
+                                    this._CheckWatermarkVisibility();
                                     handled = true;
                                     break;
                                 case Key.Y:
@@ -8230,10 +8282,10 @@ var Fayde;
                                     }
                                     break;
                                 case Key.Z:
-                                    if (!isReadOnly) {
-                                        handled = true;
-                                        proxy.undo();
-                                    }
+                                    if (isReadOnly)
+                                        break;
+                                    handled = true;
+                                    proxy.undo();
                                     break;
                             }
                         }
@@ -8243,6 +8295,7 @@ var Fayde;
                     args.Handled = handled;
                 }
                 proxy.end();
+                this._CheckWatermarkVisibility();
                 if (!args.Handled && !isReadOnly)
                     this.PostOnKeyDown(args);
             };
@@ -8263,7 +8316,12 @@ var Fayde;
                     proxy.enterText(args.Char);
                     args.Handled = true;
                 }
+                this._CheckWatermarkVisibility();
                 proxy.end();
+            };
+            TextBoxBase.prototype._CheckWatermarkVisibility = function () {
+                if (this.Watermark.length > 0 && this.$WatermarkElement)
+                    this.$WatermarkElement.Visibility = this.$Proxy.text.length > 0 || this.IsFocused ? Fayde.Visibility.Collapsed : Fayde.Visibility.Visible;
             };
             TextBoxBase.prototype._KeyDownBackSpace = function (modifiers) {
                 if (modifiers.Shift || modifiers.Alt)
@@ -8429,7 +8487,7 @@ var Fayde;
             TextBoxBase.SelectionStartProperty = DependencyProperty.RegisterFull("SelectionStart", function () { return Number; }, TextBoxBase, 0, undefined, undefined, true, positiveIntValidator);
             TextBoxBase.BaselineOffsetProperty = DependencyProperty.Register("BaselineOffset", function () { return Number; }, TextBoxBase);
             TextBoxBase.MaxLengthProperty = DependencyProperty.RegisterFull("MaxLength", function () { return Number; }, TextBoxBase, 0, undefined, undefined, undefined, positiveIntValidator);
-            TextBoxBase.SelectionOnFocusProperty = DependencyProperty.Register("SelectionOnFocus", function () { return new Fayde.Enum(Controls.SelectionOnFocus); }, TextBoxBase, Controls.SelectionOnFocus.Default);
+            TextBoxBase.WatermarkProperty = DependencyProperty.Register("Watermark", function () { return String; }, TextBoxBase, "");
             return TextBoxBase;
         })(Controls.Control);
         Controls.TextBoxBase = TextBoxBase;
@@ -9272,6 +9330,7 @@ var Fayde;
             Fayde.DPReaction(TextBox.TextProperty, function (tb, ov, nv) {
                 tb.$Proxy.setText(nv);
                 tb.$View.setText(tb.DisplayText);
+                tb._CheckWatermarkVisibility();
             }, false);
         })(reactions || (reactions = {}));
     })(Controls = Fayde.Controls || (Fayde.Controls = {}));
@@ -9633,11 +9692,7 @@ var Fayde;
             };
             ToolTipServiceSlave.prototype.OnOwnerMouseEnterInternal = function (sender, source) {
                 var _this = this;
-                if (this._LastEnterSource && this._LastEnterSource === source)
-                    return;
                 if (this._CurrentTooltip) {
-                    if (sender.GetValue(AssignedToolTipProperty) === this._CurrentTooltip)
-                        return;
                     this.CloseAutomaticToolTip();
                 }
                 this._Owner = sender;
@@ -21311,6 +21366,7 @@ var Fayde;
             var TextBoxContentProxy = (function () {
                 function TextBoxContentProxy() {
                     this.$$element = null;
+                    this.$$scrollElement = null;
                 }
                 TextBoxContentProxy.prototype.setElement = function (fe, view) {
                     this.$$element = fe;
@@ -21332,8 +21388,11 @@ var Fayde;
                         console.warn("TextBox does not have a valid content element.");
                     }
                 };
+                TextBoxContentProxy.prototype.setScrollElement = function (fe) {
+                    this.$$scrollElement = fe;
+                };
                 TextBoxContentProxy.prototype.setHorizontalScrollBar = function (sbvis) {
-                    var ce = this.$$element;
+                    var ce = this.$$scrollElement;
                     if (!ce)
                         return;
                     var ceType = ce.constructor;
@@ -21343,7 +21402,7 @@ var Fayde;
                     ce.SetValueInternal(propd, sbvis);
                 };
                 TextBoxContentProxy.prototype.setVerticalScrollBar = function (sbvis) {
-                    var ce = this.$$element;
+                    var ce = this.$$scrollElement;
                     if (!ce)
                         return;
                     var ceType = ce.constructor;

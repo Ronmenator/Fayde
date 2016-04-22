@@ -1549,17 +1549,22 @@ declare module Fayde.Controls {
         static ItemContainerStyleProperty: DependencyProperty;
         static MaxDropDownHeightProperty: DependencyProperty;
         static IsSelectionActiveProperty: DependencyProperty;
+        static WatermarkProperty: DependencyProperty;
         IsDropDownOpen: boolean;
         ItemContainerStyle: Style;
         MaxDropDownHeight: number;
+        Watermark: String;
         private $ContentPresenter;
         private $Popup;
         private $DropDownToggle;
         private $DisplayedItem;
         private $SelectionBoxItem;
         private $SelectionBoxItemTemplate;
+        private $WatermarkElement;
         private _NullSelFallback;
         private _FocusedIndex;
+        private _FirstOpen;
+        private _RowHeight;
         constructor();
         private _IsDropDownOpenChanged(args);
         private _MaxDropDownHeightChanged(args);
@@ -1575,6 +1580,7 @@ declare module Fayde.Controls {
         OnMouseEnter(e: Input.MouseEventArgs): void;
         OnMouseLeave(e: Input.MouseEventArgs): void;
         OnKeyDown(e: Input.KeyEventArgs): void;
+        private _CheckWatermarkVisibility();
         OnGotFocus(e: RoutedEventArgs): void;
         OnLostFocus(e: RoutedEventArgs): void;
         private _OnChildKeyDown(sender, e);
@@ -1919,6 +1925,7 @@ declare module Fayde.Controls {
         OnLostFocus(e: RoutedEventArgs): void;
         NotifyListItemGotFocus(lbi: ListBoxItem): void;
         NotifyListItemLostFocus(lbi: ListBoxItem): void;
+        OnItemsSourceChanged(e: IDependencyPropertyChangedEventArgs): void;
     }
 }
 declare module Fayde.Controls {
@@ -2050,7 +2057,7 @@ declare module Fayde.Controls {
         static SelectionStartProperty: DependencyProperty;
         static BaselineOffsetProperty: DependencyProperty;
         static MaxLengthProperty: DependencyProperty;
-        static SelectionOnFocusProperty: DependencyProperty;
+        static WatermarkProperty: DependencyProperty;
         CaretBrush: Media.Brush;
         SelectionForeground: Media.Brush;
         SelectionBackground: Media.Brush;
@@ -2059,6 +2066,7 @@ declare module Fayde.Controls {
         BaselineOffset: number;
         MaxLength: number;
         SelectionOnFocus: SelectionOnFocus;
+        Watermark: String;
         private _Selecting;
         private _Captured;
         IsReadOnly: boolean;
@@ -2068,6 +2076,7 @@ declare module Fayde.Controls {
         $Advancer: Internal.ICursorAdvancer;
         $View: Internal.TextBoxView;
         $Clipboard: Clipboard.IClipboard;
+        $WatermarkElement: FrameworkElement;
         constructor(eventsMask: Text.EmitChangedType);
         private _SyncFont();
         CreateView(): Internal.TextBoxView;
@@ -2084,6 +2093,7 @@ declare module Fayde.Controls {
         OnTouchMove(e: Input.TouchEventArgs): void;
         OnKeyDown(args: Input.KeyEventArgs): void;
         PostOnKeyDown(args: Input.KeyEventArgs): void;
+        _CheckWatermarkVisibility(): void;
         private _KeyDownBackSpace(modifiers);
         private _KeyDownDelete(modifiers);
         private _KeyDownPageDown(modifiers);
@@ -4875,7 +4885,9 @@ declare module Fayde.Controls.Internal {
 declare module Fayde.Controls.Internal {
     class TextBoxContentProxy {
         private $$element;
+        private $$scrollElement;
         setElement(fe: FrameworkElement, view: TextBoxView): void;
+        setScrollElement(fe: FrameworkElement): void;
         setHorizontalScrollBar(sbvis: ScrollBarVisibility): void;
         setVerticalScrollBar(sbvis: ScrollBarVisibility): void;
     }
