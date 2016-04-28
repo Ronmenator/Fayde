@@ -18,6 +18,7 @@ module Fayde.Controls {
             this.$element = this.createElement();
             this.$element.frameBorder = "0";
             this.$element.scrolling = "auto";
+            this.$element.id = "Part_Frame";
             this.$element.style.position = "absolute";
             this.$element.style.width = "100px";
             this.$element.style.height = "100px";
@@ -32,7 +33,7 @@ module Fayde.Controls {
             setTimeout(() => {
                 var pos = this._GetLeftTop();
                 this.$element.style.left = pos.x + "px";
-                this.$element.style.top = pos.y + "px";                
+                this.$element.style.top = pos.y + "px";
             }, 100);
         }
         
