@@ -7045,6 +7045,7 @@ var Fayde;
                 this.$element = this.createElement();
                 this.$element.frameBorder = "0";
                 this.$element.scrolling = "auto";
+                this.$element.id = "Part_Frame";
                 this.$element.style.position = "absolute";
                 this.$element.style.width = "100px";
                 this.$element.style.height = "100px";
