@@ -9,5 +9,22 @@
             </TextBlock>
         </Border>
         <TextBlock>Inner Text</TextBlock>
+        <Border BorderBrush="Black"
+                BorderThickness="1"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center">
+            <TextBlock 
+                    Text="This is a test"
+                    Foreground="Black"
+                    RenderTransformOrigin="0,1"
+                    TextTrimming="WordEllipsis"
+                    FontSize="20">
+                <TextBlock.RenderTransform>
+                    <TransformGroup>
+                        <RotateTransform Angle="90" />
+                    </TransformGroup>
+                </TextBlock.RenderTransform>
+            </TextBlock>
+        </Border>
     </Grid>
 </Application>
