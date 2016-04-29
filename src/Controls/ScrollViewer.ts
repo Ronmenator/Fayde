@@ -80,7 +80,14 @@ module Fayde.Controls {
                 value.CanVerticallyScroll = this.VerticalScrollBarVisibility !== ScrollBarVisibility.Disabled;
             }
         }
-
+        
+        ResetScrollInfo() {
+            var scrollInfo = this.ScrollInfo;
+            if (scrollInfo) {
+                scrollInfo.SetVerticalOffset(0);
+                scrollInfo.SetHorizontalOffset(0);
+            }
+        }
         InvalidateScrollInfo() {
             var scrollInfo = this.ScrollInfo;
             if (scrollInfo) {

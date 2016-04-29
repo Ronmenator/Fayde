@@ -1510,6 +1510,7 @@ declare module Fayde.Controls {
         constructor();
         private _ScrollInfo;
         ScrollInfo: Primitives.IScrollInfo;
+        ResetScrollInfo(): void;
         InvalidateScrollInfo(): void;
         private _UpdateScrollBarVisibility();
         private _UpdateScrollBar(orientation, value);

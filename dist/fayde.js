@@ -4316,15 +4316,22 @@ var Fayde;
                 Selector.prototype.OnItemsChanged = function (e) {
                     _super.prototype.OnItemsChanged.call(this, e);
                     var item;
+                    var tsv = this.$TemplateScrollViewer;
+                    if (tsv)
+                        tsv.ResetScrollInfo();
                     switch (e.Action) {
                         case Fayde.Collections.CollectionChangedAction.Add:
                             var lbi;
                             if (e.NewItems[0] instanceof Controls.ListBoxItem)
                                 lbi = e.NewItems[0];
                             if (lbi != null && lbi.IsSelected && !this.SelectedItems.Contains(lbi)) {
+                                if (tsv)
+                                    tsv.ScrollToVerticalOffset(0);
                                 this._Selection.Select(lbi);
                             }
                             else if (this.SelectedItem != null) {
+                                if (tsv)
+                                    tsv.ScrollToVerticalOffset(0);
                                 this._Selection.Select(this.SelectedItem);
                             }
                             break;
@@ -5630,6 +5637,13 @@ var Fayde;
                 enumerable: true,
                 configurable: true
             });
+            ScrollViewer.prototype.ResetScrollInfo = function () {
+                var scrollInfo = this.ScrollInfo;
+                if (scrollInfo) {
+                    scrollInfo.SetVerticalOffset(0);
+                    scrollInfo.SetHorizontalOffset(0);
+                }
+            };
             ScrollViewer.prototype.InvalidateScrollInfo = function () {
                 var scrollInfo = this.ScrollInfo;
                 if (scrollInfo) {
